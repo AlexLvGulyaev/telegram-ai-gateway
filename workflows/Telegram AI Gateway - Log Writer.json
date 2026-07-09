@@ -1,0 +1,138 @@
+{
+  "name": "Telegram AI Gateway - Log Writer",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"request_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"created_at\": \"2026-07-09T10:00:00.000Z\",\n  \"workflow_name\": \"Telegram AI Gateway\",\n  \"workflow_version\": \"1.0\",\n  \"stage\": \"content_load\",\n  \"event_type\": \"request\",\n  \"level\": \"INFO\",\n  \"status\": \"SUCCESS\",\n  \"chat_id\": \"123456789\",\n  \"user_id\": \"987654321\",\n  \"input_url\": \"https://example.com/article\",\n  \"duration_ms\": 1500,\n  \"message\": \"Content loaded successfully\",\n  \"error_code\": \"\",\n  \"error_message\": \"\",\n  \"details\": {}\n}"
+      },
+      "id": "fda7d23f-fe25-4591-975e-bbcfbebd7da5",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        4448,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Prepare Log Entry - Prepare structured log entry for PostgreSQL\n * Purpose: Receive log event from main workflow and prepare for insertion\n * Input: Complete log object from Execute Workflow Trigger\n * Output: Structured log entry ready for PostgreSQL\n * \n * Contract:\n * - request_id: UUID (required)\n * - created_at: ISO timestamp (required) - passed from main workflow to ensure chronological order\n * - workflow_name: string (required)\n * - workflow_version: string (optional)\n * - stage: string (required)\n * - event_type: string (optional)\n * - level: 'INFO' | 'WARNING' | 'ERROR' (default: 'INFO')\n * - status: 'SUCCESS' | 'FAILED' | 'IN_PROGRESS' (default: 'IN_PROGRESS')\n * - chat_id: string (optional)\n * - user_id: string (optional)\n * - input_url: string (optional)\n * - duration_ms: number (optional)\n * - message: string (optional)\n * - error_code: string (optional)\n * - error_message: string (optional)\n * - details: object (optional, default: {})\n */\nconst input = $input.all()[0].json;\n\n// Validate required fields\nif (!input.request_id) {\n  throw new Error('request_id is required');\n}\nif (!input.created_at) {\n  throw new Error('created_at is required');\n}\nif (!input.workflow_name) {\n  throw new Error('workflow_name is required');\n}\nif (!input.stage) {\n  throw new Error('stage is required');\n}\n\n// Prepare log entry with defaults\nconst logEntry = {\n  request_id: input.request_id,\n  created_at: input.created_at,\n  workflow_name: input.workflow_name,\n  workflow_version: input.workflow_version || null,\n  stage: input.stage,\n  event_type: input.event_type || null,\n  level: input.level || 'INFO',\n  status: input.status || 'IN_PROGRESS',\n  chat_id: input.chat_id || null,\n  user_id: input.user_id || null,\n  input_url: input.input_url || null,\n  duration_ms: input.duration_ms || null,\n  message: input.message || null,\n  error_code: input.error_code || null,\n  error_message: input.error_message || null,\n  details: input.details || {}\n};\n\n// Log for debugging\nconsole.log('[Log Writer] Processing log entry:');\nconsole.log('[Log Writer] request_id:', logEntry.request_id);\nconsole.log('[Log Writer] created_at:', logEntry.created_at);\nconsole.log('[Log Writer] stage:', logEntry.stage);\nconsole.log('[Log Writer] status:', logEntry.status);\nconsole.log('[Log Writer] level:', logEntry.level);\n\nreturn [{ json: logEntry }];\n"
+      },
+      "id": "3ba474b7-20f3-407b-ab5e-0a198f7a5b54",
+      "name": "Prepare Log Entry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4672,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "schema": "public",
+        "table": "workflow_logs",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $json.request_id }}",
+            "created_at": "={{ $json.created_at }}",
+            "workflow_name": "={{ $json.workflow_name }}",
+            "workflow_version": "={{ $json.workflow_version }}",
+            "stage": "={{ $json.stage }}",
+            "event_type": "={{ $json.event_type }}",
+            "level": "={{ $json.level }}",
+            "status": "={{ $json.status }}",
+            "chat_id": "={{ $json.chat_id }}",
+            "user_id": "={{ $json.user_id }}",
+            "input_url": "={{ $json.input_url }}",
+            "duration_ms": "={{ $json.duration_ms }}",
+            "message": "={{ $json.message }}",
+            "error_code": "={{ $json.error_code }}",
+            "error_message": "={{ $json.error_message }}",
+            "details": "={{ JSON.stringify($json.details) }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "e5cdd313-00f3-4de4-bcdf-105ea89bcc64",
+      "name": "Insert Log to PostgreSQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        4896,
+        1536
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "XYEpHwKQnjoeX2O8",
+          "name": "Telegram AI Gateway PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Finalize Log Entry - Return success status\n * Purpose: Confirm log insertion and return result\n * Input: Inserted row from PostgreSQL\n * Output: Success confirmation with log ID\n */\nconst inserted = $input.all()[0].json;\n\nconsole.log('[Log Writer] Log entry inserted successfully');\nconsole.log('[Log Writer] ID:', inserted.id);\nconsole.log('[Log Writer] created_at:', inserted.created_at);\n\nreturn [{\n  json: {\n    success: true,\n    log_id: inserted.id,\n    request_id: inserted.request_id,\n    created_at: inserted.created_at\n  }\n}];"
+      },
+      "id": "110840b9-bea4-473c-97e6-c1321e2bd4bb",
+      "name": "Finalize Log Entry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5120,
+        1536
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare Log Entry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Log Entry": {
+      "main": [
+        [
+          {
+            "node": "Insert Log to PostgreSQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Log to PostgreSQL": {
+      "main": [
+        [
+          {
+            "node": "Finalize Log Entry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "58daf569-2a32-46c3-8df3-982b54ea670b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c5b3a17bf61f70e95704e22330a8778b168aa88e14d632753a6d69fc0c46619",
+    "lastModified": "2026-07-09T00:00:00Z",
+    "description": "Log Writer workflow for Telegram AI Gateway - accepts log events and writes to PostgreSQL"
+  },
+  "nodeGroups": [],
+  "id": "ZKavjvDKoohBhWcj",
+  "tags": []
+}

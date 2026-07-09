@@ -1,0 +1,3136 @@
+{
+  "name": "Telegram AI Gateway",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "a4bd015a-3c26-4925-bff9-9c856d55f50f",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        8864,
+        5808
+      ],
+      "webhookId": "telegram-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "5QKYRnp7dw5Tzw8I",
+          "name": "telegram-ai-gateway-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Generate Request ID - Create correlation ID for request tracking\n * Purpose: Generate unique request ID and timestamp for logging and debugging\n * Input: Telegram message\n * Output: request_id, created_at, original message\n * \n * This request_id is used throughout the workflow for:\n * - Correlating logs across nodes\n * - Debugging request flows\n * - Error tracking\n * \n * created_at is used for:\n * - Ensuring chronological order of logs within a request\n * - Preventing race condition when logs are written asynchronously\n */\nconsole.log('[Generate Request ID] Creating correlation ID and timestamp');\n\nreturn items.map(item => {\n  // Generate UUID v4 for request tracking\n  const requestId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n  \n  // Generate ISO timestamp for this request\n  const createdAt = new Date().toISOString();\n  \n  console.log('[Generate Request ID] Generated:', requestId, 'at', createdAt);\n  \n  return {\n    json: {\n      request_id: requestId,\n      created_at: createdAt,\n      message: item.json.message\n    }\n  };\n});"
+      },
+      "id": "74cc6007-aa3b-45a4-a3f1-154a458527eb",
+      "name": "Generate Request ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9024,
+        5808
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "url",
+              "stringValue": "={{ $json.message.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2cc498e3-ab01-45f7-9ce8-d72c74cb4af4",
+      "name": "Prepare Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        9200,
+        5808
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Configuration - Workflow configuration parameters\n * Purpose: Provide all configuration parameters as item.json\n * Output: item.json with all configuration fields\n * \n * Usage: $('Configuration').item.json.FIELD_NAME\n */\n\nconst config = {\n  // === Provider Configuration ===\n  AI_PROVIDER: \"gigachat\",\n  // === Content Source Configuration ===\n  CONTENT_SOURCE: \"url\",\n  // === LLM Configuration ===\n  LLM_MODEL: \"GigaChat-2-Max\",\n  LLM_TEMPERATURE: 0.1,\n  LLM_SYSTEM_PROMPT: \"Сформируй структурированный пост для Telegram строго по переданному тексту.\\n\\nФормат:\\n- Заголовок\\n- Краткое описание (1–2 предложения)\\n- 3–5 пунктов\\n- Вывод\\n\\nТребования:\\n- не добавляй факты от себя\\n- используй только переданный текст\\n- игнорируй служебные элементы, ссылки, теги и навигационный мусор\",\n  LLM_USER_PROMPT: \"Сделай структурированный пост для Telegram строго по следующему тексту статьи. Не добавляй новых фактов от себя. Игнорируй служебные элементы, ссылки, теги и навигационный мусор, если они встречаются. Используй только содержательную часть текста.\\n\\nФормат:\\n- Заголовок\\n- Краткое описание (1–2 предложения)\\n- 3–5 пунктов\\n- Вывод\\n\\nТекст статьи:\\n{TEXT}\",\n  // === Limits ===\n  LIMIT_TEXT_LENGTH: 12000,\n  LIMIT_PROMPT_LENGTH: 5000,\n  LIMIT_MESSAGE_LENGTH: 4096,\n  // === HTTP Settings ===\n  HTTP_LOAD_TIMEOUT: 30000,\n  HTTP_API_TIMEOUT: 60000,\n  HTTP_LOAD_RETRIES: 3,\n  HTTP_LOAD_RETRY_INTERVAL: 1000,\n  HTTP_TOKEN_RETRIES: 2,\n  HTTP_TOKEN_RETRY_INTERVAL: 500,\n  HTTP_API_RETRIES: 2,\n  HTTP_API_RETRY_INTERVAL: 1000,\n  // === Extraction ===\n  EXTRACT_SELECTORS: \"article,main,.tm-article-body,.tm-content\",\n  // === User Messages ===\n  MSG_INVALID_URL: \"Пожалуйста, отправьте корректную ссылку на статью, начинающуюся с http:// или https://\",\n  MSG_DNS_ERROR: \"Ошибка DNS. Проверьте правильность домена в URL.\",\n  MSG_TIMEOUT: \"Превышено время ожидания. Проверьте доступность сайта.\",\n  MSG_SSL_ERROR: \"Ошибка SSL-сертификата. Сайт использует недостоверный сертификат.\",\n  MSG_404: \"Страница не найдена (404). Проверьте правильность URL.\",\n  MSG_403: \"Доступ запрещён (403). Страница недоступна для чтения.\",\n  MSG_500: \"Ошибка сервера (500). Попробуйте позже.\",\n  MSG_CONNECTION_ERROR: \"Сервер недоступен. Сайт не отвечает на запросы.\",\n  MSG_LOAD_DEFAULT: \"Не удалось загрузить страницу. Проверьте URL и повторите попытку.\",\n  MSG_EXTRACT_ERROR: \"Не удалось извлечь текст из статьи. Возможно, страница не содержит текстового контента.\",\n  MSG_AUTH_ERROR: \"Ошибка авторизации в сервисе. Обратитесь к администратору.\",\n  MSG_API_400: \"Ошибка в запросе к AI-сервису. Попробуйте упростить текст.\",\n  MSG_API_401: \"Ошибка авторизации в AI-сервисе. Обратитесь к администратору.\",\n  MSG_API_429: \"Превышен лимит запросов к AI-сервису. Попробуйте через минуту.\",\n  MSG_API_500: \"AI-сервис временно недоступен. Попробуйте позже.\",\n  MSG_API_DEFAULT: \"Сервис временно недоступен. Попробуйте позже.\",\n};\n\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    ...config\n  }\n}));"
+      },
+      "id": "e800702c-1134-4e85-900a-06273fcfe2eb",
+      "name": "Configuration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9344,
+        5808
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "71f52766-f88e-499d-9d95-283591e97c5d",
+              "leftValue": "={{ $json.url }}",
+              "rightValue": "^https?:\\/\\/",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cde9bc6a-7960-4ae0-bc98-26ade2e699ab",
+      "name": "Check URL",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        9488,
+        5808
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": "={{ $('Configuration').item.json.HTTP_LOAD_TIMEOUT }}"
+        }
+      },
+      "id": "a1dc1949-b5fe-4f8a-92c4-10b6cd967be2",
+      "name": "Load Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        9920,
+        5712
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Extract Article with Fallback - Extract article text from HTML with fallback selectors\n * Purpose: Try multiple CSS selectors to extract article content\n * Input: HTML page data\n * Output: article_text (string)\n * \n * Fallback priority:\n * 1. article - semantic article element (most specific)\n * 2. main - main content area\n * 3. .tm-article-body - Habr-specific selector\n * 4. .tm-content - Habr content area\n * 5. body - last resort (returns raw text)\n * \n * @param {string} selectors - Comma-separated list of CSS selectors to try\n * @param {string} request_id - Request correlation ID for logging\n */\nconst config = $('Configuration').item.json;\nconst requestId = $('Generate Request ID').item.json.request_id;\nconst selectors = config.EXTRACT_SELECTORS.split(',').map(s => s.trim());\n\nconsole.log(`[${requestId}][Extract Article] Trying selectors:`, selectors.join(', '));\nconsole.log(`[${requestId}][Extract Article] Input data length:`, $json.data?.length || 0);\n\n// Try each selector in priority order\nfor (const selector of selectors) {\n  try {\n    // Use n8n's built-in HTML extraction\n    const extracted = $json.data;\n    \n    // Simple regex-based extraction (since we can't use DOM in n8n Code node)\n    // Look for content within the selector tags\n    const tagMatch = selector.match(/^(\\.|#)?(.+)$/);\n    if (!tagMatch) continue;\n    \n    const prefix = tagMatch[1] || '';\n    const tagName = tagMatch[2];\n    \n    let content = '';\n    \n    if (prefix === '.') {\n      // Class selector: find <... class=\"...tagName...\">\n      const regex = new RegExp(`<[^>]*class=\"[^\"]*\\b${tagName}\\b[^\"]*\"[^>]*>([\\\\s\\\\S]*?)<\\/[^>]*>`, 'gi');\n      const matches = extracted.match(regex);\n      if (matches && matches.length > 0) {\n        content = matches[0].replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n      }\n    } else if (prefix === '#') {\n      // ID selector: find <... id=\"tagName\">\n      const regex = new RegExp(`<[^>]*id=\"${tagName}\"[^>]*>([\\\\s\\\\S]*?)<\\/[^>]*>`, 'gi');\n      const matches = extracted.match(regex);\n      if (matches && matches.length > 0) {\n        content = matches[0].replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n      }\n    } else {\n      // Tag selector: find <tagName>...</tagName>\n      const regex = new RegExp(`<${tagName}[^>]*>([\\\\s\\\\S]*?)<\\/${tagName}>`, 'gi');\n      const matches = extracted.match(regex);\n      if (matches && matches.length > 0) {\n        content = matches[0].replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n      }\n    }\n    \n    if (content && content.length > 100) {\n      console.log(`[${requestId}][Extract Article] SUCCESS with selector:`, selector, 'length:', content.length);\n      return [{\n        json: {\n          article: content,\n          selector_used: selector,\n          request_id: requestId\n        }\n      }];\n    }\n    \n    console.log(`[${requestId}][Extract Article] Selector ${selector} returned insufficient content (${content?.length || 0} chars)`);\n  } catch (error) {\n    console.log(`[${requestId}][Extract Article] Selector ${selector} failed:`, error.message);\n  }\n}\n\n// If no selector worked, try body as last resort\nconsole.log(`[${requestId}][Extract Article] All selectors failed, trying body as last resort`);\ntry {\n  const bodyMatch = $json.data.match(/<body[^>]*>([\\\\s\\\\S]*?)<\\/body>/i);\n  if (bodyMatch) {\n    const content = bodyMatch[1].replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n    if (content && content.length > 100) {\n      console.log(`[${requestId}][Extract Article] SUCCESS with body selector, length:`, content.length);\n      return [{\n        json: {\n          article: content,\n          selector_used: 'body',\n          request_id: requestId\n        }\n      }];\n    }\n  }\n} catch (error) {\n  console.log(`[${requestId}][Extract Article] Body extraction failed:`, error.message);\n}\n\n// Complete failure\nconsole.log(`[${requestId}][Extract Article] ERROR: NO_CONTENT_EXTRACTED`);\nreturn [{\n  json: {\n    article: '',\n    selector_used: 'none',\n    request_id: requestId,\n    error: 'NO_CONTENT_EXTRACTED'\n  }\n}];"
+      },
+      "id": "2769bb5c-0c9a-43ee-9752-8758b6b88f7e",
+      "name": "Extract Article",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10304,
+        5696
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Clean Text - Extract and clean article text\n * Purpose: Extract text from HTML, remove noise, apply limits\n * Input: HTML extraction result with dynamic key\n * Output: cleaned_text (string, max LIMIT_TEXT_LENGTH chars)\n */\nconst config = $('Configuration').item.json;\nconst requestId = $('Generate Request ID').item.json.request_id;\nconst LIMIT_TEXT_LENGTH = config.LIMIT_TEXT_LENGTH;\n\n// Stop markers for content cleanup\nconst STOP_MARKERS = [\n  'Теги:',\n  'Хабы:',\n  'ССЫЛКИ',\n  'Вопрос к сообществу',\n  'Читайте также',\n  'Подписывайтесь'\n];\n\nconsole.log(`[${requestId}][Clean Text] Input keys:`, Object.keys($input.item.json));\n\nreturn items.map(item => {\n  // Extract text from dynamic key\n  const values = Object.values(item.json);\n  let raw = values.find(v => typeof v === 'string' && v.trim().length > 0) || '';\n\n  if (!raw || raw.trim().length === 0) {\n    console.log(`[${requestId}][Clean Text] ERROR: NO_TEXT_EXTRACTED`);\n    item.json.error = 'NO_TEXT_EXTRACTED';\n    item.json.cleaned_text = '';\n    return item;\n  }\n\n  console.log(`[${requestId}][Clean Text] Original length:`, raw.length);\n\n  // Clean: brackets, URLs, paths, braces, dashes, newlines, spaces\n  let text = raw\n    .replace(/\\[[^\\]]*\\]/g, ' ')\n    .replace(/https?:\\/\\/\\S+/g, ' ')\n    .replace(/\\/[A-Za-zА-Яа-я0-9_\\-\\/.%?=&#+]+/g, ' ')\n    .replace(/[{}<>]/g, ' ')\n    .replace(/[-–—]{2,}/g, ' ')\n    .replace(/\\n+/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  // Remove stop markers\n  for (const marker of STOP_MARKERS) {\n    const idx = text.indexOf(marker);\n    if (idx !== -1) {\n      text = text.slice(0, idx).trim();\n    }\n  }\n\n  // Limit text length\n  const truncated = text.length > LIMIT_TEXT_LENGTH;\n  if (truncated) {\n    console.log(`[${requestId}][Clean Text] Truncated from`, text.length, 'to', LIMIT_TEXT_LENGTH);\n  }\n  item.json.cleaned_text = text.slice(0, LIMIT_TEXT_LENGTH);\n  \n  console.log(`[${requestId}][Clean Text] Cleaned length:`, item.json.cleaned_text.length);\n  return item;\n});"
+      },
+      "id": "8b241e62-400e-42f3-a3e7-b24b652f6745",
+      "name": "Clean Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10512,
+        5696
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "1bf7073b-d89f-47aa-abc9-b74d0cac1f9b",
+              "leftValue": "={{ $json.cleaned_text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a2f95362-518b-4116-81ce-39bf0a8ac907",
+      "name": "Check Text",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        10704,
+        5696
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "prompt",
+              "stringValue": "={{ $('Configuration').item.json.LLM_USER_PROMPT.replace('{TEXT}', $json.cleaned_text.slice(0, $('Configuration').item.json.LIMIT_PROMPT_LENGTH)) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "852578c4-5b2b-41a1-924e-9fcc5df288b6",
+      "name": "Prepare Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        10912,
+        5520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Generate RqUID for GigaChat token request\n * Purpose: Generate UUID v4 for OAuth request\n * Output: rq_uid (UUID v4)\n * \n * NOTE: This is part of GigaChat Provider Implementation\n * For other providers, this node would be replaced or adapted\n */\nconst requestId = $('Generate Request ID').item.json.request_id;\nconsole.log(`[${requestId}][Generate RqUID] Generating request UID`);\n\nreturn items.map(item => {\n  // Generate UUID v4\n  item.json.rq_uid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n  \n  console.log(`[${requestId}][Generate RqUID] Generated:`, item.json.rq_uid);\n  return item;\n});"
+      },
+      "id": "e7b9f92f-4e3d-45e1-8a6d-06f4ff3e7709",
+      "name": "Generate RqUID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11248,
+        5520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ngw.devices.sberbank.ru:9443/api/v2/oauth",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "RqUID",
+              "value": "={{ $json.rq_uid }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "scope",
+              "value": "GIGACHAT_API_PERS"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "timeout": "={{ $('Configuration').item.json.HTTP_LOAD_TIMEOUT }}"
+        }
+      },
+      "id": "8861ac21-4d38-4dbd-bcf1-6b4e504c49f8",
+      "name": "Get GigaChat Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        11424,
+        5520
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "eoio7n1SJbn5g6wE",
+          "name": "gigachat-basic-auth"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://gigachat.devices.sberbank.ru/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  \"model\": $(\"Configuration\").item.json.LLM_MODEL,\n  \"temperature\": $(\"Configuration\").item.json.LLM_TEMPERATURE,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": $(\"Configuration\").item.json.LLM_SYSTEM_PROMPT\n    },\n    {\n      \"role\": \"user\",\n      \"content\": $(\"Prepare Prompt\").item.json.prompt\n    }\n  ]\n}\n}}",
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "timeout": "={{ $('Configuration').item.json.HTTP_API_TIMEOUT }}"
+        }
+      },
+      "id": "ede1093b-268e-4078-b631-2e836a4b8499",
+      "name": "GigaChat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        11776,
+        5520
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Split Message - Split long messages into parts\n * Purpose: Check message length, split if exceeds Telegram limit\n * Input: GigaChat response with content\n * Output: Single or multiple messages with part numbering\n */\nconst config = $('Configuration').item.json;\nconst requestId = $('Generate Request ID').item.json.request_id;\nconst LIMIT_MESSAGE_LENGTH = config.LIMIT_MESSAGE_LENGTH;\n\nconsole.log(`[${requestId}][Split Message] Processing response`);\n\nconst content = $json.choices?.[0]?.message?.content || '';\n\nif (!content || content.length === 0) {\n  console.log(`[${requestId}][Split Message] ERROR: NO_CONTENT`);\n  return [{\n    json: {\n      error: 'NO_CONTENT',\n      message: 'GigaChat не вернул контент',\n      request_id: requestId\n    }\n  }];\n}\n\nconsole.log(`[${requestId}][Split Message] Content length:`, content.length);\n\nif (content.length <= LIMIT_MESSAGE_LENGTH) {\n  console.log(`[${requestId}][Split Message] Single message (no split needed)`);\n  return [{\n    json: {\n      text: content,\n      part: 1,\n      total: 1,\n      chat_id: $('Telegram Trigger').item.json.message.chat.id,\n      request_id: requestId\n    }\n  }];\n}\n\nconsole.log(`[${requestId}][Split Message] Splitting message into parts`);\n\n// Split long message at word boundaries\nconst parts = [];\nlet current = '';\nconst words = content.split(' ');\n\nfor (const word of words) {\n  if ((current + ' ' + word).length <= LIMIT_MESSAGE_LENGTH) {\n    current = current ? current + ' ' + word : word;\n  } else {\n    if (current) parts.push(current);\n    current = word;\n  }\n}\nif (current) parts.push(current);\n\nconsole.log(`[${requestId}][Split Message] Total parts:`, parts.length);\n\n// Return multiple messages with part numbering\nreturn parts.map((part, index) => {\n  const text = `Часть ${index + 1}/${parts.length}:\\n\\n${part}`;\n  \n  return {\n    json: {\n      text: text,\n      part: index + 1,\n      total: parts.length,\n      chat_id: $('Telegram Trigger').item.json.message.chat.id,\n      request_id: requestId\n    }\n  };\n});"
+      },
+      "id": "4475b65b-5e1d-4717-a83c-14016b5bec62",
+      "name": "Split Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12176,
+        5520
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "d23bd5ae-45b5-4ade-81c6-21f090f36da5",
+      "name": "Send Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        12352,
+        5520
+      ],
+      "webhookId": "85cfde88-bf96-46e7-b68e-c763081cebb9",
+      "credentials": {
+        "telegramApi": {
+          "id": "5QKYRnp7dw5Tzw8I",
+          "name": "telegram-ai-gateway-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('Configuration').item.json.MSG_INVALID_URL }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "5f2da6ae-445d-4694-9fd0-d0980e7e6987",
+      "name": "Send Error (Invalid URL)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        9920,
+        6080
+      ],
+      "webhookId": "9dae7679-3dcc-4f63-971e-5b3436972410",
+      "credentials": {
+        "telegramApi": {
+          "id": "5QKYRnp7dw5Tzw8I",
+          "name": "telegram-ai-gateway-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Format Load Error - Map HTTP errors to user messages\n * Purpose: Determine user-friendly error message based on error type\n * Input: Error object from Load Page\n * Output: chat_id, error_message, error_code\n */\nconst config = $('Configuration').item.json;\nconst requestId = $('Generate Request ID').item.json.request_id;\nconst error = $json.error;\nlet statusCode = error?.statusCode || error?.status;\nconst errorMessage = error?.message || '';\n\n// Map error codes to user messages\nlet userMessage = config.MSG_LOAD_DEFAULT;\n\nif (statusCode === 404) {\n  userMessage = config.MSG_404;\n} else if (statusCode === 500) {\n  userMessage = config.MSG_500;\n} else if (statusCode === 403) {\n  userMessage = config.MSG_403;\n} else if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('DNS')) {\n  userMessage = config.MSG_DNS_ERROR;\n} else if (errorMessage.includes('ETIMEDOUT') || errorMessage.includes('timeout')) {\n  userMessage = config.MSG_TIMEOUT;\n} else if (errorMessage.includes('SSL') || errorMessage.includes('certificate')) {\n  userMessage = config.MSG_SSL_ERROR;\n  statusCode = 'SSL_ERROR';\n} else if (errorMessage.includes('ECONNREFUSED')) {\n  userMessage = config.MSG_CONNECTION_ERROR;\n}\n\nconsole.log(`[${requestId}][Load Page Error] Status:`, statusCode, 'Message:', errorMessage);\n\nreturn [{\n  json: {\n    chat_id: $('Telegram Trigger').item.json.message.chat.id,\n    error_message: userMessage,\n    error_code: String(statusCode || 'NETWORK_ERROR'),\n    request_id: requestId\n  }\n}];"
+      },
+      "id": "b9fe6fb6-5c24-402a-97cd-9ebf31b3cafb",
+      "name": "Format Load Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10304,
+        6096
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.error_message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "725ffde4-6bb1-43fb-94ca-7f6adbc96553",
+      "name": "Send Error (Load)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        10512,
+        6096
+      ],
+      "webhookId": "20bca7ee-4e92-44f1-9e5b-f76f7bbbfa16",
+      "credentials": {
+        "telegramApi": {
+          "id": "5QKYRnp7dw5Tzw8I",
+          "name": "telegram-ai-gateway-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('Configuration').item.json.MSG_EXTRACT_ERROR }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "2408d57c-c02d-48a6-9c4b-a57cfe957a48",
+      "name": "Send Error (Extract)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        10912,
+        5856
+      ],
+      "webhookId": "7aae1851-e9fa-4c9c-9b97-f797ce386cd1",
+      "credentials": {
+        "telegramApi": {
+          "id": "5QKYRnp7dw5Tzw8I",
+          "name": "telegram-ai-gateway-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Format Auth Error - Format authentication error message\n * Purpose: Format error message for OAuth failures\n * Input: Error object from Get GigaChat Token\n * Output: chat_id, error_message, error_code\n */\nconst config = $('Configuration').item.json;\nconst requestId = $('Generate Request ID').item.json.request_id;\nconst error = $json.error;\nconst statusCode = error?.statusCode || error?.status;\n\nconsole.log(`[${requestId}][Auth Error] Status:`, statusCode, 'Message:', error?.message);\n\nreturn [{\n  json: {\n    chat_id: $('Telegram Trigger').item.json.message.chat.id,\n    error_message: config.MSG_AUTH_ERROR,\n    error_code: statusCode || 'AUTH_ERROR',\n    request_id: requestId\n  }\n}];"
+      },
+      "id": "cb962411-5c36-4a23-a917-d042ec16713f",
+      "name": "Format Auth Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11776,
+        5872
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.error_message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "10154589-d354-49ee-afe8-346372ee1214",
+      "name": "Send Error (Auth)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        11968,
+        5872
+      ],
+      "webhookId": "7464bab1-b6dd-42f3-b44d-7d9f284127fd",
+      "credentials": {
+        "telegramApi": {
+          "id": "5QKYRnp7dw5Tzw8I",
+          "name": "telegram-ai-gateway-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Format API Error - Map API errors to user messages\n * Purpose: Determine user-friendly error message based on API status code\n * Input: Error object from GigaChat API\n * Output: chat_id, error_message, error_code\n */\nconst config = $('Configuration').item.json;\nconst requestId = $('Generate Request ID').item.json.request_id;\nconst error = $json.error;\nconst statusCode = error?.statusCode || error?.status;\n\n// Map status codes to user messages\nlet userMessage = config.MSG_API_DEFAULT;\n\nif (statusCode === 400) {\n  userMessage = config.MSG_API_400;\n} else if (statusCode === 401) {\n  userMessage = config.MSG_API_401;\n} else if (statusCode === 429) {\n  userMessage = config.MSG_API_429;\n} else if (statusCode >= 500) {\n  userMessage = config.MSG_API_500;\n}\n\nconsole.log(`[${requestId}][GigaChat Error] Status:`, statusCode, 'Message:', error?.message);\n\nreturn [{\n  json: {\n    chat_id: $('Telegram Trigger').item.json.message.chat.id,\n    error_message: userMessage,\n    error_code: statusCode || 'API_ERROR',\n    request_id: requestId\n  }\n}];"
+      },
+      "id": "d7bbcb78-f213-441a-807d-a63b18b413a7",
+      "name": "Format API Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12176,
+        5872
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.error_message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "50220cb4-3204-4f56-8634-e56b6b200780",
+      "name": "Send Error (API)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        12368,
+        5872
+      ],
+      "webhookId": "f4086383-4e71-4b6a-a5e1-fa47ae60f48f",
+      "credentials": {
+        "telegramApi": {
+          "id": "5QKYRnp7dw5Tzw8I",
+          "name": "telegram-ai-gateway-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "content-source-url",
+              "leftValue": "={{ $('Configuration').item.json.CONTENT_SOURCE }}",
+              "rightValue": "url",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f8a220bf-6251-4805-848c-f4a9e0cff837",
+      "name": "Content Source Detection",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        9712,
+        5792
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "provider-gigachat",
+              "leftValue": "={{ $('Configuration').item.json.AI_PROVIDER }}",
+              "rightValue": "gigachat",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "18f9178f-4893-4853-9d02-bf05ca40770f",
+      "name": "Provider Entry Point",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        11088,
+        5520
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZKavjvDKoohBhWcj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZKavjvDKoohBhWcj",
+          "cachedResultName": "Telegram AI Gateway - Log Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Generate Request ID').item.json.request_id }}",
+            "duration_ms": 0,
+            "workflow_name": "Telegram AI Gateway",
+            "workflow_version": "=1.0",
+            "stage": "REQUEST_RECEIVED",
+            "event_type": "telegram_webhook",
+            "level": "INFO",
+            "status": "SUCCESS",
+            "chat_id": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+            "user_id": "={{ String($('Telegram Trigger').item.json.message.from.id) }}",
+            "input_url": "={{ $json.message.text }}",
+            "message": "Request received",
+            "created_at": "={{ $('Generate Request ID').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_version",
+              "displayName": "workflow_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_url",
+              "displayName": "input_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "duration_ms",
+              "displayName": "duration_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        9024,
+        6016
+      ],
+      "id": "575d402c-221c-452e-9857-d0b9c531f21c",
+      "name": "Log REQUEST_RECEIVED",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZKavjvDKoohBhWcj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZKavjvDKoohBhWcj",
+          "cachedResultName": "Telegram AI Gateway - Log Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Generate Request ID').item.json.request_id }}",
+            "duration_ms": 0,
+            "workflow_name": "Telegram AI Gateway",
+            "workflow_version": "=1.0",
+            "stage": "WORKFLOW_FINISHED",
+            "event_type": "workflow",
+            "level": "INFO",
+            "status": "SUCCESS",
+            "chat_id": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+            "user_id": "={{ String($('Telegram Trigger').item.json.message.from.id) }}",
+            "input_url": "={{ $('Prepare Input').item.json.url }}",
+            "message": "Workflow execution completed successfully",
+            "created_at": "={{ $('Generate Request ID').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_version",
+              "displayName": "workflow_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_url",
+              "displayName": "input_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "duration_ms",
+              "displayName": "duration_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        12528,
+        5520
+      ],
+      "id": "df1dc672-cedc-4942-bfc2-0d377aec61f8",
+      "name": "Log WORKFLOW_FINISHED",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZKavjvDKoohBhWcj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZKavjvDKoohBhWcj",
+          "cachedResultName": "Telegram AI Gateway - Log Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Generate Request ID').item.json.request_id }}",
+            "duration_ms": 0,
+            "workflow_name": "Telegram AI Gateway",
+            "workflow_version": "=1.0",
+            "stage": "WORKFLOW_FAILED",
+            "event_type": "workflow",
+            "level": "ERROR",
+            "status": "FAILED",
+            "chat_id": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+            "user_id": "={{ String($('Telegram Trigger').item.json.message.from.id) }}",
+            "input_url": "={{ $('Prepare Input').item.json.url }}",
+            "error_code": "INVALID_URL",
+            "error_message": "Invalid URL format",
+            "message": "Workflow execution failed: invalid URL",
+            "created_at": "={{ $('Generate Request ID').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_version",
+              "displayName": "workflow_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_url",
+              "displayName": "input_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "duration_ms",
+              "displayName": "duration_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        10080,
+        6080
+      ],
+      "id": "bcb397ff-788e-40c1-ad5b-560870414e7b",
+      "name": "Log WORKFLOW_FAILED_INVALID_URL",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZKavjvDKoohBhWcj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZKavjvDKoohBhWcj",
+          "cachedResultName": "Telegram AI Gateway - Log Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Generate Request ID').item.json.request_id }}",
+            "duration_ms": 0,
+            "workflow_name": "Telegram AI Gateway",
+            "workflow_version": "=1.0",
+            "stage": "PAGE_LOAD_FAILED",
+            "event_type": "http_request",
+            "level": "ERROR",
+            "status": "FAILED",
+            "chat_id": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+            "user_id": "={{ String($('Telegram Trigger').item.json.message.from.id) }}",
+            "input_url": "={{ $('Prepare Input').item.json.url }}",
+            "error_message": "={{ $json.error_message }}",
+            "message": "Workflow execution failed: invalid URL",
+            "error_code": "={{ $json.error_code }}",
+            "created_at": "={{ $('Generate Request ID').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_version",
+              "displayName": "workflow_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_url",
+              "displayName": "input_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "duration_ms",
+              "displayName": "duration_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        10304,
+        6288
+      ],
+      "id": "ba620583-58e4-4e08-ab32-80a1be717e3c",
+      "name": "Log PAGE_LOAD_FAILED",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZKavjvDKoohBhWcj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZKavjvDKoohBhWcj",
+          "cachedResultName": "Telegram AI Gateway - Log Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Generate Request ID').item.json.request_id }}",
+            "duration_ms": 0,
+            "workflow_name": "Telegram AI Gateway",
+            "workflow_version": "=1.0",
+            "stage": "ARTICLE_EXTRACT_FAILED",
+            "event_type": "processing",
+            "level": "ERROR",
+            "status": "FAILED",
+            "chat_id": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+            "user_id": "={{ String($('Telegram Trigger').item.json.message.from.id) }}",
+            "input_url": "={{ $('Prepare Input').item.json.url }}",
+            "error_code": "NO_TEXT_EXTRACTED",
+            "error_message": "Failed to extract article text",
+            "message": "Article extraction failed",
+            "created_at": "={{ $('Generate Request ID').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_version",
+              "displayName": "workflow_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_url",
+              "displayName": "input_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "duration_ms",
+              "displayName": "duration_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        11088,
+        5856
+      ],
+      "id": "19b077e0-fd60-4931-a1fb-a03b9c10a60a",
+      "name": "Log ARTICLE_EXTRACT_FAILED",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZKavjvDKoohBhWcj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZKavjvDKoohBhWcj",
+          "cachedResultName": "Telegram AI Gateway - Log Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Generate Request ID').item.json.request_id }}",
+            "duration_ms": 0,
+            "workflow_name": "Telegram AI Gateway",
+            "workflow_version": "=1.0",
+            "stage": "TOKEN_FAILED",
+            "event_type": "oauth",
+            "level": "ERROR",
+            "status": "FAILED",
+            "chat_id": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+            "user_id": "={{ String($('Telegram Trigger').item.json.message.from.id) }}",
+            "input_url": "={{ $('Prepare Input').item.json.url }}",
+            "error_code": "={{ $json.error_code }}",
+            "error_message": "={{ $json.error_message }}",
+            "message": "Failed to get GigaChat token",
+            "created_at": "={{ $('Generate Request ID').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_version",
+              "displayName": "workflow_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_url",
+              "displayName": "input_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "duration_ms",
+              "displayName": "duration_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        11776,
+        6080
+      ],
+      "id": "fa9daa7b-870a-4735-9ce3-a46982c36ecd",
+      "name": "Log TOKEN_FAILED",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZKavjvDKoohBhWcj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZKavjvDKoohBhWcj",
+          "cachedResultName": "Telegram AI Gateway - Log Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Generate Request ID').item.json.request_id }}",
+            "duration_ms": 0,
+            "workflow_name": "Telegram AI Gateway",
+            "workflow_version": "=1.0",
+            "stage": "LLM_FAILED",
+            "event_type": "llm",
+            "level": "ERROR",
+            "status": "FAILED",
+            "chat_id": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+            "user_id": "={{ String($('Telegram Trigger').item.json.message.from.id) }}",
+            "input_url": "={{ $('Prepare Input').item.json.url }}",
+            "error_code": "={{ $json.error_code }}",
+            "error_message": "={{ $json.error_message }}",
+            "message": "LLM request failed",
+            "created_at": "={{ $('Generate Request ID').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_version",
+              "displayName": "workflow_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_url",
+              "displayName": "input_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "duration_ms",
+              "displayName": "duration_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        12176,
+        6080
+      ],
+      "id": "b87a9d47-52f4-4359-abf1-72d25b1f8bb0",
+      "name": "Log LLM_FAILED",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZKavjvDKoohBhWcj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZKavjvDKoohBhWcj",
+          "cachedResultName": "Telegram AI Gateway - Log Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Generate Request ID').item.json.request_id }}",
+            "duration_ms": 0,
+            "workflow_name": "Telegram AI Gateway",
+            "workflow_version": "=1.0",
+            "stage": "PAGE_LOADED",
+            "event_type": "http_request",
+            "level": "INFO",
+            "status": "SUCCESS",
+            "chat_id": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+            "user_id": "={{ String($('Telegram Trigger').item.json.message.from.id) }}",
+            "input_url": "={{ $('Prepare Input').item.json.url }}",
+            "message": "Page loaded successfully",
+            "created_at": "={{ $('Generate Request ID').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_version",
+              "displayName": "workflow_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_url",
+              "displayName": "input_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "duration_ms",
+              "displayName": "duration_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        10080,
+        5936
+      ],
+      "id": "8c70a7e0-6c23-41e9-be7d-3affaffc1d86",
+      "name": "Log PAGE_LOADED",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZKavjvDKoohBhWcj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZKavjvDKoohBhWcj",
+          "cachedResultName": "Telegram AI Gateway - Log Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Generate Request ID').item.json.request_id }}",
+            "duration_ms": 0,
+            "workflow_name": "Telegram AI Gateway",
+            "workflow_version": "=1.0",
+            "stage": "TEXT_EXTRACTED",
+            "event_type": "processing",
+            "level": "INFO",
+            "status": "SUCCESS",
+            "chat_id": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+            "user_id": "={{ String($('Telegram Trigger').item.json.message.from.id) }}",
+            "input_url": "={{ $('Prepare Input').item.json.url }}",
+            "message": "Article text extracted",
+            "created_at": "={{ $('Generate Request ID').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_version",
+              "displayName": "workflow_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_url",
+              "displayName": "input_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "duration_ms",
+              "displayName": "duration_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        10304,
+        5872
+      ],
+      "id": "594954a8-68ed-4e4c-9655-76662ca6df6e",
+      "name": "Log TEXT_EXTRACTED",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZKavjvDKoohBhWcj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZKavjvDKoohBhWcj",
+          "cachedResultName": "Telegram AI Gateway - Log Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Generate Request ID').item.json.request_id }}",
+            "duration_ms": 0,
+            "workflow_name": "Telegram AI Gateway",
+            "workflow_version": "=1.0",
+            "stage": "TOKEN_RECEIVED",
+            "event_type": "oauth",
+            "level": "INFO",
+            "status": "SUCCESS",
+            "chat_id": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+            "user_id": "={{ String($('Telegram Trigger').item.json.message.from.id) }}",
+            "input_url": "={{ $('Prepare Input').item.json.url }}",
+            "message": "GigaChat token received",
+            "created_at": "={{ $('Generate Request ID').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_version",
+              "displayName": "workflow_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_url",
+              "displayName": "input_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "duration_ms",
+              "displayName": "duration_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        11424,
+        5712
+      ],
+      "id": "7f78b86d-7157-462e-a12e-21c1f5af19ce",
+      "name": "Log TOKEN_RECEIVED",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZKavjvDKoohBhWcj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZKavjvDKoohBhWcj",
+          "cachedResultName": "Telegram AI Gateway - Log Writer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ $('Generate Request ID').item.json.request_id }}",
+            "duration_ms": 0,
+            "workflow_name": "Telegram AI Gateway",
+            "workflow_version": "=1.0",
+            "stage": "LLM_COMPLETED",
+            "event_type": " llm",
+            "level": "INFO",
+            "status": "SUCCESS",
+            "chat_id": "={{ String($('Telegram Trigger').item.json.message.chat.id) }}",
+            "user_id": "={{ String($('Telegram Trigger').item.json.message.from.id) }}",
+            "input_url": "={{ $('Prepare Input').item.json.url }}",
+            "message": "LLM response received",
+            "created_at": "={{ $('Generate Request ID').item.json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "workflow_version",
+              "displayName": "workflow_version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "stage",
+              "displayName": "stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "level",
+              "displayName": "level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "input_url",
+              "displayName": "input_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "duration_ms",
+              "displayName": "duration_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "details",
+              "displayName": "details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        11776,
+        5696
+      ],
+      "id": "46ca0977-cf83-4560-ad60-d043d855fe6d",
+      "name": "Log LLM_COMPLETED",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "07387b10-9e10-4e73-922a-97fcb3cec86f",
+              "leftValue": "={{ $json.access_token }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        11584,
+        5520
+      ],
+      "id": "eb7aa8f4-1b40-4a43-a2e1-92af676ecb12",
+      "name": "Check Token"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "84945257-5796-4dde-a927-2c580d491ace",
+              "leftValue": "={{ Array.isArray($json.choices) && $json.choices.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        11968,
+        5520
+      ],
+      "id": "380e0420-481b-4eda-b251-b1bdcbf15573",
+      "name": "Check Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "67153fb0-c7f5-4410-b41e-c32adce66e1f",
+              "leftValue": "={{ $json.error !== null && $json.error !== undefined }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        10080,
+        5712
+      ],
+      "id": "cd2c0ae4-5108-446f-ba01-3539bdba62f0",
+      "name": "Check Load Error"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Generate Request ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Request ID": {
+      "main": [
+        [
+          {
+            "node": "Log REQUEST_RECEIVED",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Input": {
+      "main": [
+        [
+          {
+            "node": "Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuration": {
+      "main": [
+        [
+          {
+            "node": "Check URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check URL": {
+      "main": [
+        [
+          {
+            "node": "Content Source Detection",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error (Invalid URL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Page": {
+      "main": [
+        [
+          {
+            "node": "Check Load Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Article": {
+      "main": [
+        [
+          {
+            "node": "Log TEXT_EXTRACTED",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Clean Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Text": {
+      "main": [
+        [
+          {
+            "node": "Check Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Text": {
+      "main": [
+        [
+          {
+            "node": "Prepare Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error (Extract)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Prompt": {
+      "main": [
+        [
+          {
+            "node": "Provider Entry Point",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate RqUID": {
+      "main": [
+        [
+          {
+            "node": "Get GigaChat Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GigaChat Token": {
+      "main": [
+        [
+          {
+            "node": "Log TOKEN_RECEIVED",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GigaChat": {
+      "main": [
+        [
+          {
+            "node": "Log LLM_COMPLETED",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Message": {
+      "main": [
+        [
+          {
+            "node": "Send Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Load Error": {
+      "main": [
+        [
+          {
+            "node": "Send Error (Load)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log PAGE_LOAD_FAILED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Auth Error": {
+      "main": [
+        [
+          {
+            "node": "Log TOKEN_FAILED",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Error (Auth)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format API Error": {
+      "main": [
+        [
+          {
+            "node": "Log LLM_FAILED",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Error (API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Source Detection": {
+      "main": [
+        [
+          {
+            "node": "Load Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Error (Invalid URL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Provider Entry Point": {
+      "main": [
+        [
+          {
+            "node": "Generate RqUID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Message": {
+      "main": [
+        [
+          {
+            "node": "Log WORKFLOW_FINISHED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Error (Invalid URL)": {
+      "main": [
+        [
+          {
+            "node": "Log WORKFLOW_FAILED_INVALID_URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Error (Extract)": {
+      "main": [
+        [
+          {
+            "node": "Log ARTICLE_EXTRACT_FAILED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Token": {
+      "main": [
+        [
+          {
+            "node": "GigaChat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Auth Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Response": {
+      "main": [
+        [
+          {
+            "node": "Split Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format API Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Load Error": {
+      "main": [
+        [
+          {
+            "node": "Format Load Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Article",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log PAGE_LOADED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "341a8d79-4223-4560-859a-411adcf134df",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c5b3a17bf61f70e95704e22330a8778b168aa88e14d632753a6d69fc0c46619"
+  },
+  "nodeGroups": [],
+  "id": "wW8hk2AUrwFbfRkY",
+  "tags": []
+}
