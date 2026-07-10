@@ -23,29 +23,41 @@ telegram-ai-gateway/
 ├── .gitignore                     # Исключения для Git
 ├── .env.example                   # Пример конфигурации
 ├── docker-compose.yml             # Docker Compose конфигурация
+├── docker-compose.test.yml        # Docker Compose для тестирования
 │
 ├── workflows/
-│   └── telegram-ai-gateway.json   # n8n workflow JSON
+│   ├── Telegram AI Gateway.json            # Основной workflow (39 nodes)
+│   └── Telegram AI Gateway - Log Writer.json # Log Writer workflow (4 nodes)
 │
 ├── docs/
 │   ├── SPEC.md                    # Продуктовая спецификация
 │   ├── PROJECT_STATE.md           # Паспорт состояния проекта
 │   ├── IMPLEMENTATION_PLAN.md     # План реализации
 │   ├── architecture.md            # Архитектура проекта
+│   ├── architecture-decisions.md  # Архитектурные решения
 │   ├── setup.md                   # Инструкция по установке
 │   ├── deployment_guide.md        # Руководство по развёртыванию
 │   ├── workflow_overview.md       # Обзор workflow
+│   ├── logging-integration-guide.md # Интеграция логирования
+│   ├── credentials-setup.md       # Настройка credentials
+│   ├── negative_tests.md          # Спецификация негативных тестов
 │   ├── limitations.md             # Ограничения проекта
-│   └── known_issues.md             # Известные проблемы
-│
-├── assets/
+│   ├── known_issues.md            # Известные проблемы
+│   ├── engineering-investigation-n8n-update.md # Исследование n8n версий
 │   └── screenshots/                # Скриншоты workflow и работы бота
-│       ├── workflow-overview.png
-│       ├── telegram-bot-example.png
-│       └── deployment-example.png
+│       ├── PEn04_main_workflow.png
+│       ├── PEn04_log_workflow.png
+│       ├── PEn04_TG_valid.png
+│       └── PEn04_TG_errors.png
 │
-└── scripts/
-    └── validate-deployment.sh      # Скрипт валидации развёртывания
+├── migrations/
+│   ├── 001_create_workflow_logs.sql      # Создание таблицы логов
+│   └── 002_alter_workflow_logs_created_at.sql # Добавление created_at
+│
+├── scripts/
+│   └── validate-deployment.sh      # Скрипт валидации развёртывания
+│
+└── n8n_files/                      # Каталог для файлов n8n (пустой, .gitkeep)
 ```
 
 ---
@@ -77,17 +89,38 @@ telegram-ai-gateway/
 | docs/PROJECT_STATE.md | Паспорт состояния проекта | Markdown |
 | docs/IMPLEMENTATION_PLAN.md | План реализации (этот документ) | Markdown |
 | docs/architecture.md | Описание архитектуры | Markdown |
+| docs/architecture-decisions.md | Архитектурные решения | Markdown |
 | docs/setup.md | Инструкция по установке | Markdown |
 | docs/deployment_guide.md | Руководство по развёртыванию | Markdown |
 | docs/workflow_overview.md | Обзор workflow | Markdown |
+| docs/logging-integration-guide.md | Интеграция логирования | Markdown |
+| docs/credentials-setup.md | Настройка credentials | Markdown |
+| docs/negative_tests.md | Спецификация негативных тестов | Markdown |
 | docs/limitations.md | Ограничения проекта | Markdown |
 | docs/known_issues.md | Известные проблемы | Markdown |
+| docs/engineering-investigation-n8n-update.md | Исследование версий n8n | Markdown |
 
 ### Скрипты
 
 | Файл | Назначение | Формат |
 |------|-----------|--------|
 | scripts/validate-deployment.sh | Валидация развёртывания | Bash |
+
+### Миграции базы данных
+
+| Файл | Назначение | Формат |
+|------|-----------|--------|
+| migrations/001_create_workflow_logs.sql | Создание таблицы workflow_logs | SQL |
+| migrations/002_alter_workflow_logs_created_at.sql | Добавление поля created_at | SQL |
+
+### Скриншоты
+
+| Файл | Назначение | Формат |
+|------|-----------|--------|
+| docs/screenshots/PEn04_main_workflow.png | Общий вид основного workflow | PNG |
+| docs/screenshots/PEn04_log_workflow.png | Общий вид Log Writer workflow | PNG |
+| docs/screenshots/PEn04_TG_valid.png | Пример работы бота с валидным URL | PNG |
+| docs/screenshots/PEn04_TG_errors.png | Пример работы бота с ошибками | PNG |
 
 ### Исключённые файлы
 
