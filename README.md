@@ -20,31 +20,31 @@ Production-ready Telegram-бот для переработки статей в �
 
 ---
 
-## Скриншоты
+## Сценарии
 
-### Успешный сценарий
+### Успешная обработка статьи
 
 ![Telegram — успешная обработка](docs/screenshots/PEn04_TG_valid.png)
 
-Пользователь отправляет ссылку, бот возвращает структурированный пост.
+Пользователь отправляет ссылку на статью — бот возвращает структурированный пост.
 
-### Архитектура workflow
+### Поток обработки
 
 ![Основной workflow](docs/screenshots/PEn04_main_workflow.png)
 
-Поток обработки: Telegram Trigger → Load Page → Extract Article → Clean Text → GigaChat → Split Message → Send Message.
+Маршрут обработки запроса: Telegram Trigger → Load Page → Extract Article → Clean Text → GigaChat → Split Message → Send Message.
 
-### Логирование
+### Журналирование выполнения
 
 ![Log Writer workflow](docs/screenshots/PEn04_log_workflow.png)
 
-Вспомогательный workflow для записи логов в PostgreSQL.
+Система журналирования: Execute Workflow → Log Writer → PostgreSQL. Каждый этап выполнения записывается с request_id для трассировки.
 
 ### Обработка ошибок
 
 ![Telegram — обработка ошибок](docs/screenshots/PEn04_TG_errors.png)
 
-Пользовательские сообщения на русском языке при ошибках загрузки, авторизации и API.
+Пользовательские сообщения на русском языке при ошибках загрузки, авторизации и API. Система различает DNS-ошибки, HTTP-статусы (404, 403, 500), SSL-проблемы и ошибки AI-сервиса.
 
 ---
 
