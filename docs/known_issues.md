@@ -307,9 +307,11 @@
 - [ ] Token caching для GigaChat
 - [ ] Rate limiting для пользователей
 - [ ] Мониторинг и alerting
+- [ ] Поддержка нескольких ботов
 
 ### Приоритет 3 (долгосрочные)
 
 - [ ] JavaScript-рендеринг для сложных сайтов
 - [ ] Queue system для высокой нагрузки
 - [ ] Web interface для мониторинга
+- [ ] Webhook security (Telegram signature verification)

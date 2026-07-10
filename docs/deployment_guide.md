@@ -141,7 +141,7 @@ mkdir -p ~/projects
 cd ~/projects
 
 # Клонируйте репозиторий
-git clone https://github.com/your-username/telegram-ai-gateway.git
+git clone https://github.com/AlexLvGulyaev/telegram-ai-gateway.git
 cd telegram-ai-gateway
 ```
 
@@ -259,7 +259,7 @@ mkdir -p ~/projects
 cd ~/projects
 
 # Клонируйте репозиторий
-git clone https://github.com/your-username/telegram-ai-gateway.git
+git clone https://github.com/AlexLvGulyaev/telegram-ai-gateway.git
 cd telegram-ai-gateway
 ```
 

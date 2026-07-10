@@ -85,7 +85,7 @@
 
 | Сервис | Образ | Назначение |
 |--------|-------|-----------|
-| n8n | n8nio/n8n:1.28.0 | Workflow engine |
+| n8n | n8nio/n8n:2.29.8 | Workflow engine |
 | postgres | postgres:15-alpine | База данных n8n |
 
 ### n8n Workflow
@@ -96,7 +96,7 @@
 
 **Триггер:** Telegram Trigger (On Message)
 
-**Ноды:** 12 основных + 6 для обработки ошибок
+**Ноды:** 28 основных нод + 11 Execute Workflow нод для логирования = 39 нод
 
 ### База данных
 
