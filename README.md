@@ -126,11 +126,10 @@ N8N_BASIC_AUTH_PASSWORD=your_secure_password
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 
 # GigaChat credentials (Base64 encoded: client_id:client_secret)
-GIGACHAT_AUTH_BASIC=your_base64_credentials
-
-# Enable logging
-CODE_ENABLE_STDOUT=true
+GIGACHAT_AUTH_KEY=your_base64_credentials
 ```
+
+**Примечание:** `CODE_ENABLE_STDOUT` захардкожено в `docker-compose.yml` и не может быть изменено через `.env`.
 
 4. **Запустите проект:**
 
@@ -188,7 +187,9 @@ https://example.com/article
 | `GIGACHAT_AUTH_KEY` | GigaChat credentials (Base64) | Да |
 | `WEBHOOK_URL` | URL для webhook (пусто для polling) | Нет |
 
-**Важно:** Переменные `GIGACHAT_MODEL`, `MAX_TEXT_LENGTH`, `MAX_PROMPT_LENGTH`, `MAX_MESSAGE_LENGTH`, `SYSTEM_PROMPT`, `USER_PROMPT_TEMPLATE` **НЕ ИСПОЛЬЗУЮТСЯ** в текущей версии. Параметры заданы в Code node "Configuration" внутри workflow.
+**Важно:**
+- `CODE_ENABLE_STDOUT` захардкожено в `docker-compose.yml` и не может быть изменено через `.env`
+- Переменные `GIGACHAT_MODEL`, `MAX_TEXT_LENGTH`, `MAX_PROMPT_LENGTH`, `MAX_MESSAGE_LENGTH`, `SYSTEM_PROMPT`, `USER_PROMPT_TEMPLATE` **НЕ ИСПОЛЬЗУЮТСЯ** в текущей версии. Параметры заданы в Code node "Configuration" внутри workflow.
 
 ### Workflow Configuration
 
@@ -224,6 +225,34 @@ docker exec -i telegram-ai-gateway-postgres psql -U n8n -d n8n < migrations/002_
 ```
 
 См. [Deployment Guide](docs/deployment_guide.md) для полного руководства.
+
+---
+
+## Скриншоты
+
+### Успешный пользовательский сценарий
+
+![Telegram — успешная обработка](docs/screenshots/PEn04_TG_valid.png)
+
+Демонстрирует успешную обработку URL статьи: пользователь отправляет ссылку, бот загружает контент, очищает текст, генерирует структурированный пост через GigaChat API и возвращает результат. Визуализирует полный E2E сценарий от отправки URL до получения готового поста.
+
+### Основной workflow n8n
+
+![Основной workflow](docs/screenshots/PEn04_main_workflow.png)
+
+Показывает архитектуру основного workflow: последовательность обработки сообщения через ноды Telegram Trigger → Load Page → Extract Article → Clean Text → GigaChat → Split Message → Send Message. Демонстрирует декомпозицию бизнес-логики на изолированные этапы с чёткими точками ветвления для обработки ошибок.
+
+### Log Writer workflow
+
+![Log Writer workflow](docs/screenshots/PEn04_log_workflow.png)
+
+Демонстрирует вспомогательный workflow для логирования: приём данных из основного workflow через Webhook, запись в PostgreSQL через Execute Query, структурирование лог-сообщений с контекстом выполнения. Показывает паттерн делегирования логирования в отдельный workflow для снижения нагрузки на основной процесс.
+
+### Негативные сценарии в Telegram
+
+![Telegram — обработка ошибок](docs/screenshots/PEn04_TG_errors.png)
+
+Демонстрирует обработку типичных пользовательских ошибок: невалидный URL, недоступный сайт, ошибка авторизации в AI-сервисе, превышение лимитов API. Визуализирует понятные пользовательские сообщения на русском языке, обеспечивающие качественный UX при отказах.
 
 ---
 

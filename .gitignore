@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.*.local
+.env.test
 
 # Logs
 logs/
@@ -32,6 +33,7 @@ Thumbs.db
 *.tmp
 *.temp
 *.bak
+format-load-error-fix.js
 
 # Credentials (never commit)
 credentials/
@@ -40,6 +42,7 @@ credentials/
 
 # APL internal artifacts (not for GitHub)
 PROJECT_GOAL.md
+MEMORY.md
 
 # Attachments require separate publication decision
 attachments/

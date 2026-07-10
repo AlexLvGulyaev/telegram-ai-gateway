@@ -88,11 +88,17 @@ else
     fail "docker-compose.yml does not exist"
 fi
 
-# Check workflow file
-if [ -f workflows/telegram-ai-gateway.json ]; then
-    pass "workflow file exists"
+# Check workflow files
+if [ -f "workflows/Telegram AI Gateway.json" ]; then
+    pass "Telegram AI Gateway.json exists"
 else
-    fail "workflow file does not exist"
+    fail "Telegram AI Gateway.json does not exist"
+fi
+
+if [ -f "workflows/Telegram AI Gateway - Log Writer.json" ]; then
+    pass "Telegram AI Gateway - Log Writer.json exists"
+else
+    fail "Telegram AI Gateway - Log Writer.json does not exist"
 fi
 
 # =============================================================================
@@ -118,7 +124,7 @@ if [ -f .env ]; then
     check_env_var "N8N_BASIC_AUTH_USER"
     check_env_var "N8N_BASIC_AUTH_PASSWORD"
     check_env_var "TELEGRAM_BOT_TOKEN"
-    check_env_var "GIGACHAT_AUTH_BASIC"
+    check_env_var "GIGACHAT_AUTH_KEY"
 else
     fail "Cannot check environment variables (.env not found)"
 fi

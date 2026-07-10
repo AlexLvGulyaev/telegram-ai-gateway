@@ -115,7 +115,7 @@ N8N_BASIC_AUTH_PASSWORD=your_secure_n8n_password_here
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 
 # GigaChat
-GIGACHAT_AUTH_BASIC=your_base64_credentials_here
+GIGACHAT_AUTH_KEY=your_base64_credentials_here
 ```
 
 ### 4. Запуск проекта
