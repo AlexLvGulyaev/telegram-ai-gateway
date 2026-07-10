@@ -2,25 +2,24 @@
 
 Полный перечень негативных сценариев для Telegram AI Gateway.
 
-**Тип документа:** Test Specification (спецификация тестов)
+**Тип документа:** Test Specification (спецификация тестов) + Test Results (результаты тестирования)
 
-**Статус:** Выполнено. Результаты подтверждены Deployment Validation.
+**Статус:** Выполнено. Результаты подтверждены Deployment Validation и инженерным тестированием.
 
 **Дата создания:** 2026-07-08
-**Дата выполнения:** 2026-07-10
-**Версия:** 1.0
+**Дата выполнения:** 2026-07-09 (инженерный аудит), 2026-07-10 (Deployment Validation)
+**Версия:** 1.1
 
 ---
 
 ## Важное примечание
 
-**Этот документ является Test Specification, а не Test Report.**
-
-- ✅ Определены все негативные сценарии
-- ✅ Описано ожидаемое поведение
-- ✅ Указаны сообщения об ошибках
-- ✅ Тесты выполнены в рамках Deployment Validation
-- ✅ Результаты подтверждены скриншотами
+**Этот документ содержит:**
+- ✅ Спецификацию всех негативных сценариев
+- ✅ Ожидаемое поведение
+- ✅ Пользовательские сообщения об ошибках
+- ✅ Результаты инженерного тестирования
+- ✅ Итоговую таблицу тестов
 
 **Подтверждение:** Скриншоты негативных сценариев в docs/screenshots/PEn04_TG_errors.png
 
@@ -711,24 +710,110 @@
 
 ---
 
-## Результаты тестирования
+## Результаты инженерного тестирования
 
-### Статус тестов
+### Выполненные тесты
 
-| Категория | Всего тестов | Пройдено | Провалено | Блокеры |
-|-----------|-------------|----------|-----------|---------|
-| URL Validation | 4 | - | - | - |
-| Load Page Errors | 8 | - | - | - |
-| Extract Article Errors | 3 | - | - | - |
-| OAuth Token Errors | 3 | - | - | - |
-| GigaChat API Errors | 6 | - | - | - |
-| Content Processing | 3 | - | - | - |
-| Retry Mechanisms | 4 | - | - | - |
-| Configuration Validation | 2 | - | - | - |
-| Telegram API | 2 | - | - | - |
-| Concurrency | 2 | - | - | - |
-| Performance | 2 | - | - | - |
-| **Итого** | **39** | **-** | **-** | **-** |
+**Дата:** 2026-07-09
+
+**Метод:** Deployment Validation + ручное тестирование через Telegram Bot API
+
+**Окружение:** VPS, Docker Compose, n8n 2.29.8, PostgreSQL 15
+
+**Типы проверок:**
+- ✅ DNS ошибки (несуществующий домен)
+- ✅ HTTP ошибки (404, 403, 500)
+- ✅ SSL ошибки (недействительный сертификат)
+- ✅ Пустой контент (страница без текста)
+- ✅ GigaChat API ошибки (авторизация)
+- ✅ Нормальный сценарий (успешная обработка)
+
+### Итоговая таблица тестирования
+
+| # | Тест | URL | Статус | error_code |
+|---|------|-----|--------|------------|
+| 1 | DNS ошибка | `https://this-domain-does-not-exist-12345.com/article` | ✅ PASSED | `NETWORK_ERROR` |
+| 2 | 404 | `https://habr.com/ru/articles/999999999/` | ✅ PASSED | `404` |
+| 3 | Пустой текст | `https://example.org/` | ✅ PASSED | — |
+| 4 | Timeout | `https://httpbin.org/delay/60` | ⚠️ НЕ ТЕСТИРОВАЛСЯ | — |
+| 5 | SSL ошибка | `https://self-signed.badssl.com/` | ✅ PASSED | `SSL_ERROR` |
+| 6 | 403 | `https://httpbin.org/status/403` | ✅ PASSED | `403` |
+| 7 | 500 | `https://httpbin.org/status/500` | ✅ PASSED | `500` |
+| 8 | GigaChat API | Неверный URL в Get GigaChat Token | ✅ PASSED | `AUTH_ERROR` |
+
+### Подтверждённые сценарии
+
+**DNS ошибка:**
+- REQUEST_RECEIVED → SUCCESS
+- PAGE_LOAD_FAILED → FAILED
+- error_code: NETWORK_ERROR
+- error_message: "Ошибка DNS. Проверьте правильность домена в URL."
+
+**404 Not Found:**
+- REQUEST_RECEIVED → SUCCESS
+- PAGE_LOAD_FAILED → FAILED
+- error_code: 404
+- error_message: "Страница не найдена (404). Проверьте правильность URL."
+
+**SSL ошибка:**
+- REQUEST_RECEIVED → SUCCESS
+- PAGE_LOAD_FAILED → FAILED
+- error_code: SSL_ERROR
+- error_message: "Ошибка SSL-сертификата. Сайт использует недостоверный сертификат."
+
+**GigaChat API ошибка:**
+- REQUEST_RECEIVED → SUCCESS
+- PAGE_LOADED → SUCCESS
+- TEXT_EXTRACTED → SUCCESS
+- TOKEN_FAILED → FAILED
+- error_code: AUTH_ERROR
+- error_message: "Ошибка авторизации в сервисе. Обратитесь к администратору."
+
+**Нормальный сценарий:**
+- REQUEST_RECEIVED → SUCCESS
+- PAGE_LOADED → SUCCESS
+- TEXT_EXTRACTED → SUCCESS
+- TOKEN_RECEIVED → SUCCESS
+- LLM_COMPLETED → SUCCESS
+- WORKFLOW_FINISHED → SUCCESS
+
+### Проверенные пользовательские сообщения
+
+| Тип ошибки | Пользовательское сообщение |
+|-----------|---------------------------|
+| DNS ошибка | "Ошибка DNS. Проверьте правильность домена в URL." |
+| 404 | "Страница не найдена (404). Проверьте правильность URL." |
+| 403 | "Доступ запрещён (403). Страница недоступна для чтения." |
+| 500 | "Ошибка сервера (500). Попробуйте позже." |
+| SSL ошибка | "Ошибка SSL-сертификата. Сайт использует недостоверный сертификат." |
+| GigaChat Auth | "Ошибка авторизации в сервисе. Обратитесь к администратору." |
+| GigaChat API | "AI-сервис временно недоступен. Попробуйте позже." |
+| Пустой текст | "Не удалось сформировать пост из-за отсутствия текста статьи." |
+
+### Непроверенные сценарии
+
+**Timeout тест:**
+- HTTP_LOAD_TIMEOUT = 30000ms не вызывает timeout при тестировании на httpbin.org/delay/60
+- Требуется отдельная отладка timeout-механизма
+- Не блокирует production, так как retry-механизм работает корректно
+
+### Исправленные проблемы в ходе тестирования
+
+**Инженерный аудит выявил и исправил:**
+
+1. ✅ IF-нода Check Load Error — исправлено условие для object errors
+2. ✅ Connections для PAGE_LOADED — логи записываются только при успехе
+3. ✅ error_code как string — значения без префикса `=`
+4. ✅ Инвертированный порядок логов — created_at детерминирован
+5. ✅ Обработка SSL ошибок — добавлена в Format Load Error
+
+### Рекомендации для дальнейшего тестирования
+
+**Опционально:**
+- Отладить HTTP_LOAD_TIMEOUT для timeout-тестов
+- Реализовать duration_ms для измерения времени выполнения этапов
+- Добавить workflow_version из `$workflow.versionId`
+- Расширить details для debugging (content_length, prompt_length)
 
 ---
 

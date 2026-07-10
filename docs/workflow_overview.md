@@ -54,53 +54,37 @@
 
 ## Диаграмма workflow
 
-```
-[Telegram Trigger]
-         │
-         ▼
-  [Prepare Input]
-         │
-         ▼
-    [Check URL] ───────[false]──→ [Send Error (Invalid URL)]
-         │ [true]
-         ▼
-    [Load Page] ────────[error]
-         │                     │
-         ▼                     ▼
- [Check Load Error]──[false]──[Format Load Error]
-         │ [true]                     │
-         ▼                            ▼
- [Extract Article]            [Send Error (Load)]
-         │
-         ▼
-   [Clean Text]
-         │
-         ▼
-   [Check Text] ──────────[false]──→ [Send Error (Extract)]
-         │ [true]
-         ▼
- [Prepare Prompt]
-         │
-         ▼
- [Generate RqUID]
-         │
-         ▼
-[Get GigaChat Token] ─────[error]
-         │                     │
-         ▼                     ▼
-   [Check Token] ─────[false]──[Format Auth Error]
-         │ [true]                     │
-         ▼                            ▼
-     [GigaChat] ──────────[error]     [Send Error (Auth)]
-         │                     │
-         ▼                     ▼
- [Check Response] ─────[false]──[Format API Error]
-         │ [true]                     │
-         ▼                            ▼
-  [Split Message]             [Send Error (API)]
-         │
-         ▼
-  [Send Message]
+```mermaid
+flowchart TB
+    Trigger[Telegram Trigger] --> Prepare[Prepare Input]
+    Prepare --> CheckURL{Check URL}
+    CheckURL -->|invalid| ErrorURL[Send Error<br/>Invalid URL]
+
+    CheckURL -->|valid| Load[Load Page]
+    Load -->|error| CheckLoad{Check Load Error}
+    CheckLoad -->|error| FormatLoad[Format Load Error]
+    FormatLoad --> ErrorLoad[Send Error<br/>Load Failed]
+
+    CheckLoad -->|success| Extract[Extract Article]
+
+    Extract --> Clean[Clean Text]
+    Clean --> CheckText{Check Text}
+    CheckText -->|empty| ErrorExtract[Send Error<br/>Extract Failed]
+
+    CheckText -->|has text| Prompt[Prepare Prompt]
+    Prompt --> RqUID[Generate RqUID]
+    RqUID --> Token[Get GigaChat Token]
+    Token -->|error| CheckToken{Check Token}
+    CheckToken -->|invalid| FormatAuth[Format Auth Error]
+    FormatAuth --> ErrorAuth[Send Error<br/>Auth Failed]
+
+    CheckToken -->|valid| GigaChat[GigaChat API]
+    GigaChat -->|error| CheckResponse{Check Response}
+    CheckResponse -->|invalid| FormatAPI[Format API Error]
+    FormatAPI --> ErrorAPI[Send Error<br/>API Unavailable]
+
+    CheckResponse -->|valid| Split[Split Message]
+    Split --> Send[Send Message]
 ```
 
 ---
@@ -652,61 +636,33 @@ console.log('[GigaChat Error] Status:', statusCode, 'Message:', error?.message);
 
 ## Логирование
 
-### Log Levels
+Система логирования реализована через отдельный Log Writer workflow с записью в PostgreSQL.
 
-| Level | Events |
-|-------|--------|
-| INFO | Workflow start, URL received, Page loaded, Token obtained, Message sent |
-| WARNING | Text truncated, Retry attempt |
-| ERROR | Invalid URL, Page load failed, Auth failed, API error |
+**Архитектура логирования:**
+- Отдельный reusable workflow "Telegram AI Gateway - Log Writer"
+- Execute Workflow nodes на всех критических этапах
+- PostgreSQL таблица workflow_logs
+- Request ID для корреляции логов одного запроса
 
-### Логируемые события
+**Точки логирования:**
+- REQUEST_RECEIVED — получение URL от пользователя
+- PAGE_LOADED / PAGE_LOAD_FAILED — загрузка страницы
+- TEXT_EXTRACTED — извлечение текста
+- TOKEN_RECEIVED / TOKEN_FAILED — авторизация GigaChat
+- LLM_COMPLETED / LLM_FAILED — генерация поста
+- TELEGRAM_SENT / WORKFLOW_FAILED — отправка результата
 
-**INFO:**
-- Workflow started (chat_id, url)
-- Page loaded successfully (url, size)
-- Token obtained (expires_in)
-- Message sent successfully (chat_id, message_length)
+**Подробная документация:** [logging-integration-guide.md](logging-integration-guide.md)
 
-**WARNING:**
-- Text truncated (original_length, truncated_length)
-- Retrying Load Page (attempt, url)
-- Retrying GigaChat Token (attempt)
-- Retrying GigaChat (attempt)
-
-**ERROR:**
-- Invalid URL (chat_id, url)
-- Page load failed (url, error_code, error_message)
-- Article extraction failed (url)
-- Auth failed (error_message)
-- API error (error_code, error_message)
-- Send failed (chat_id, error_message)
-
-### Реализация логирования
-
-**В Code нодах:**
+**Console Logging в Code нодах:**
 ```javascript
 console.log('[Node Name] Action description');
 console.log('[Node Name] Key data:', value);
 ```
 
-**Примеры:**
-```javascript
-console.log('[Clean Text] Input keys:', Object.keys($input.item.json));
-console.log('[Clean Text] Original text length:', raw.length);
-console.log('[Clean Text] Cleaned text length:', item.json.cleaned_text.length);
-console.log('[Generate RqUID] Generated:', item.json.rq_uid);
-console.log('[Split Message] Content length:', content.length);
-console.log('[Split Message] Total parts:', parts.length);
-console.log('[Load Page Error] Status:', statusCode, 'Message:', error?.message);
-console.log('[Auth Error] Status:', statusCode, 'Message:', error?.message);
-console.log('[GigaChat Error] Status:', statusCode, 'Message:', error?.message);
-```
+**Включение console.log:** `CODE_ENABLE_STDOUT=true` в docker-compose.yml
 
-**n8n Execution History:**
-- Все выполнения workflow сохраняются в n8n execution history
-- Доступны через n8n UI
-- Для включения console.log: `CODE_ENABLE_STDOUT=true` в docker-compose.yml
+**n8n Execution History:** Все выполнения сохраняются в n8n execution history и доступны через n8n UI.
 
 ---
 
