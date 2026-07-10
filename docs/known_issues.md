@@ -286,7 +286,7 @@
 
 Если вы обнаружили проблему, не описанную в этом документе:
 
-1. Проверьте [Issues](https://github.com/your-username/telegram-ai-gateway/issues)
+1. Проверьте [Issues](https://github.com/AlexLvGulyaev/telegram-ai-gateway/issues)
 2. Создайте новый Issue с описанием:
    - Версия проекта
    - Шаги для воспроизведения
