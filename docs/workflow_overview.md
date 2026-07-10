@@ -599,37 +599,40 @@ console.log('[GigaChat Error] Status:', statusCode, 'Message:', error?.message);
 
 ### Error Flow
 
-```
-[Load Page Error]
-        │
-        ▼
-[Check Load Error] ───[false]──→ [Format Load Error]
-        │ [true]                        │
-        ▼                               ▼
-[Extract Article]              [Send Error (Load)]
-        │
-        ▼
-[Check Text Error]
-        │
-        ▼
-[Send Error (Extract)]
+```mermaid
+flowchart TB
+    subgraph Page_Loading[Page Loading Errors]
+        LoadErr[Load Page Error] --> CheckLoad{Check Load Error}
+        CheckLoad -->|error| FormatLoad[Format Load Error]
+        FormatLoad --> SendLoad[Send Error<br/>Load Failed]
+        CheckLoad -->|success| Extract[Extract Article]
+    end
 
-[Auth Error]
-        │
-        ▼
-[Check Token] ───[false]──→ [Format Auth Error]
-        │ [true]                    │
-        ▼                           ▼
-[GigaChat]                  [Send Error (Auth)]
-        │
-        ▼
-[API Error]
-        │
-        ▼
-[Check Response] ───[false]──→ [Format API Error]
-        │ [true]                       │
-        ▼                              ▼
-[Split Message]              [Send Error (API)]
+    subgraph Text_Processing[Text Processing Errors]
+        Extract --> CheckText{Check Text}
+        CheckText -->|empty| SendExtract[Send Error<br/>Extract Failed]
+        CheckText -->|has text| Prompt[Prepare Prompt]
+    end
+
+    subgraph Auth_Errors[Authentication Errors]
+        TokenErr[Auth Error] --> CheckToken{Check Token}
+        CheckToken -->|invalid| FormatAuth[Format Auth Error]
+        FormatAuth --> SendAuth[Send Error<br/>Auth Failed]
+        CheckToken -->|valid| GigaChat[GigaChat API]
+    end
+
+    subgraph API_Errors[API Call Errors]
+        APIErr[API Error] --> CheckResponse{Check Response}
+        CheckResponse -->|invalid| FormatAPI[Format API Error]
+        FormatAPI --> SendAPI[Send Error<br/>API Unavailable]
+        CheckResponse -->|valid| Split[Split Message]
+    end
+
+    SendLoad --> User[User]
+    SendExtract --> User
+    SendAuth --> User
+    SendAPI --> User
+    Split --> Send[Send Message]
 ```
 
 ---

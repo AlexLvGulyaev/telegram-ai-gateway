@@ -91,10 +91,13 @@ docker-compose up -d
 
 ## Архитектура
 
-```
-Telegram → n8n Workflow → GigaChat API → Telegram
-                │
-                └─→ PostgreSQL (logs)
+```mermaid
+flowchart LR
+    A[Telegram User] -->|URL статьи| B[n8n Workflow]
+    B -->|Load & Extract| C[GigaChat API]
+    C -->|Generated Post| B
+    B -->|Result| A
+    B -->|Logs| D[(PostgreSQL)]
 ```
 
 Пользователь отправляет URL в Telegram → workflow загружает статью → очищает текст → генерирует пост через GigaChat → возвращает результат.

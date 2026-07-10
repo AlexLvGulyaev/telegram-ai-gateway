@@ -26,18 +26,17 @@
 Создать абстрактный Provider Interface и отдельные adapter для каждого провайдера.
 
 **Структура:**
-```
-[Provider Interface]
-├── prepare_request(text, config) → request
-├── execute_request(request) → response
-├── parse_response(response) → content
-└── handle_error(error) → user_message
 
-[Provider Adapters]
-├── GigaChat Adapter
-├── OpenAI Adapter
-└── Anthropic Adapter
-```
+Provider Interface:
+- prepare_request(text, config) → request
+- execute_request(request) → response
+- parse_response(response) → content
+- handle_error(error) → user_message
+
+Provider Adapters:
+- GigaChat Adapter
+- OpenAI Adapter
+- Anthropic Adapter
 
 **Преимущества:**
 - Полная абстракция
@@ -178,29 +177,24 @@
 2. Content Processing (source-independent)
 
 **Структура:**
-```
-[Content Source Layer] — Source-specific
-├── Content Source Detection
-│   └── Input: { "content_source": "url | text | pdf | file" }
-│
-├── URL Source Branch
-│   ├── Load Page (HTTP GET)
-│   └── Extract Article (HTML extraction)
-│
-├── Text Source Branch (future)
-│   └── Validate Text
-│
-├── PDF Source Branch (future)
-│   └── Extract PDF
-│
-└── File Source Branch (future)
-    └── Extract File
 
-[Content Processing Layer] — Source-independent
-├── Clean Text
-├── Check Text
-└── Prepare Prompt
-```
+Content Source Layer (Source-specific):
+- Content Source Detection
+  - Input: { "content_source": "url | text | pdf | file" }
+- URL Source Branch
+  - Load Page (HTTP GET)
+  - Extract Article (HTML extraction)
+- Text Source Branch (future)
+  - Validate Text
+- PDF Source Branch (future)
+  - Extract PDF
+- File Source Branch (future)
+  - Extract File
+
+Content Processing Layer (Source-independent):
+- Clean Text
+- Check Text
+- Prepare Prompt
 
 **Вход Content Source Layer:**
 ```json
@@ -280,21 +274,22 @@
 Единая цепочка, где некоторые этапы условные.
 
 **Структура:**
-```
-[Input]
-    ↓
-[Content Source Detection]
-    ↓
-[Source Acquisition Branch]
-├── URL Branch (Load → Extract)
-├── Text Branch (Validate)
-├── PDF Branch (Extract)
-└── File Branch (Extract)
-    ↓
-[Unified Content Processing]
-├── Clean Text
-├── Check Text
-└── Prepare Prompt
+
+```mermaid
+flowchart TB
+    Input[Input] --> Detection[Content Source Detection]
+    Detection --> Branch{Source Acquisition Branch}
+    Branch --> URL[URL Branch<br/>Load → Extract]
+    Branch --> Text[Text Branch<br/>Validate]
+    Branch --> PDF[PDF Branch<br/>Extract]
+    Branch --> File[File Branch<br/>Extract]
+    URL --> Processing[Unified Content Processing]
+    Text --> Processing
+    PDF --> Processing
+    File --> Processing
+    Processing --> Clean[Clean Text]
+    Clean --> Check[Check Text]
+    Check --> Prompt[Prepare Prompt]
 ```
 
 **Преимущества:**
