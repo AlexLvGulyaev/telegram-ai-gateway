@@ -18,249 +18,226 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 
 ---
 
-## Разделение ответственности
+## Реализованный функционал
 
-### 1. Что было в исходном проекте
+### Основной сценарий
 
-**Архитектура:**
-- Линейный workflow из 12 нод
-- Отдельная ветка обработки невалидного URL
-- Зависимость от системного VPN
-- Использование ngrok для webhook
+**Вход:** Пользователь отправляет URL статьи в Telegram-бота
 
-**Реализованный функционал:**
-- Приём URL статьи из Telegram
-- Валидация URL (regex)
-- Загрузка веб-страницы
-- Извлечение текста статьи
-- Очистка текста от мусора
-- Формирование промпта для GigaChat
-- Получение токена GigaChat API
-- Генерация структурированного поста
-- Отправка результата в Telegram
+**Обработка:**
+1. Валидация URL (regex)
+2. Загрузка веб-страницы (HTTP Request с retry)
+3. Извлечение текста статьи (HTML extraction с fallback)
+4. Очистка текста от мусора (stop markers)
+5. Формирование промпта для GigaChat
+6. Получение токена GigaChat API (OAuth)
+7. Генерация структурированного поста (Chat Completions)
+8. Разбиение длинных сообщений (до 4096 символов)
+9. Отправка результата в Telegram
 
-**Ключевые технические решения:**
-- Optional chaining и nullish coalescing
-- Извлечение текста через Object.values (обход динамических ключей)
-- Ограничение длины текста
-- Низкая температура модели (0.1)
-- System prompt для форматирования
+**Выход:** Структурированный пост для Telegram-канала
 
-**Известные ограничения:**
-- Требуется системный VPN
-- Браузерный VPN не работает
-- Отсутствует обработка ошибок
-- Нет логирования
-- Нет retry-механизмов
-- Нет ограничения длины сообщений Telegram
-- Промпты и параметры захардкожены
+### Обработка ошибок
 
-### 2. Что должно быть реализовано
+**Реализовано:**
+- Валидация URL с пользовательским сообщением об ошибке
+- Retry-механизмы для HTTP requests (3 попытки для Load Page, 2 для GigaChat)
+- Обработка ошибок загрузки страницы (DNS, timeout, SSL, 404, 403, 500)
+- Обработка ошибок GigaChat API (400, 401, 429, 500)
+- Обработка ошибок извлечения текста
+- Пользовательские сообщения об ошибках на русском языке
 
-**Обязательные компоненты:**
-- n8n workflow с полной логикой обработки
-- Telegram Trigger (On Message)
-- Prepare Input (Set node)
-- Check URL (If node)
-- Load Page (HTTP Request)
-- Extract Article (HTML Extract)
-- Clean Text (Code node)
-- Prepare Prompt (Set node)
-- Generate RqUID (Code node)
-- Get GigaChat Token (HTTP Request)
-- GigaChat (HTTP Request)
-- Send Message (Telegram node)
-- Send Error Message (Telegram node)
+### Логирование
 
-**Обязательные параметры:**
-- Модель: GigaChat-2-Max
-- Температура: 0.1
-- Формат ответа: Заголовок, Краткое описание, 3-5 пунктов, Вывод
-- Stop markers для очистки текста
-- Ограничения длины текста
+**Реализовано:**
+- Отдельный Log Writer workflow
+- PostgreSQL таблица workflow_logs
+- Request ID для корреляции логов
+- Точки логирования на всех критических этапах
+- Документация: [logging-integration-guide.md](logging-integration-guide.md)
 
-**Обязательный функционал:**
-- Валидация URL
-- Загрузка страницы
-- Извлечение и очистка текста
-- Формирование промпта
-- Получение токена GigaChat
-- Генерация поста
-- Отправка в Telegram
-- Сообщение об ошибке при невалидном URL
+### Конфигурация
 
-**Обязательные требования к развёртыванию:**
-- Docker Compose конфигурация для n8n
-- Пример конфигурации окружения
-- Документация по настройке credentials
-- Указание на необходимость VPN (если применимо)
-
-### 3. Что добавляется в публичную версию
-
-**Требования к обработке ошибок:**
-- Обработка ошибки загрузки страницы
-- Обработка ошибки извлечения текста
-- Обработка ошибки GigaChat API
-- Обработка ошибки отправки в Telegram
-- Пользовательские сообщения об ошибках
-
-**Требования к retry-механизмам:**
-- Retry для Load Page
-- Retry для Get GigaChat Token
-- Retry для GigaChat API вызова
-
-**Требования к логированию:**
-- Логирование входящих запросов
-- Логирование успешных генераций
-- Логирование ошибок с контекстом
-
-**Требования к ограничению длины сообщений:**
-- Проверка длины ответа перед отправкой
-- Разбиение длинных сообщений на части
-- Обработка ограничения Telegram API (4096 символов)
-
-**Требования к конфигурации:**
+**Реализовано:**
+- Configuration node с параметрами
+- Provider-independent именование (LLM_MODEL, LLM_TEMPERATURE)
 - Вынос промптов в переменные
-- Вынос параметров в конфигурацию
-- Документирование всех секретов
-
-**Требования к документации:**
-- README.md
-- docs/architecture.md
-- docs/setup.md
-- docs/workflow_overview.md
-- docs/deployment_guide.md
-- docs/limitations.md
-- docs/known_issues.md
-
-**Требования к воспроизводимости:**
-- Валидированный workflow JSON
-- Пошаговая инструкция развёртывания
-- Deployment Validation на чистом окружении
-
-### 4. Что остаётся в backlog
-
-**Приоритет 1:**
-
-| Требование | Обоснование |
-|-----------|-------------|
-| Обработка ошибок загрузки страницы | Надёжность |
-| Обработка ошибок извлечения текста | Надёжность |
-| Обработка ошибок превышения лимитов | Telegram API limits |
-| Вынесение промптов в переменные | Поддерживаемость |
-| Вынесение ключевых параметров | Поддерживаемость |
-| Добавление логирования | Отладка и мониторинг |
-| Добавление retry | Надёжность |
-| Ограничение длины сообщений | Telegram API limits |
-
-**Приоритет 2:**
-
-| Требование | Обоснование |
-|-----------|-------------|
-| Проверка и нормализация URL | Усиление сценария |
-| Условное форматирование ответа | Улучшение UX |
-| Retry для Load Page | Надёжность |
-| Retry для GigaChat API | Надёжность |
-| Message length splitting | Telegram limits |
-| Configuration variables | Поддерживаемость |
-
-**Приоритет 3:**
-
-| Требование | Обоснование |
-|-----------|-------------|
-| Error Trigger workflow | Централизованная обработка ошибок |
-| Structured logging | Мониторинг |
-| Token caching | Оптимизация (токен живёт ~30 мин) |
-| Execution Logging | Эксплуатационная пригодность, восстановление жизненного цикла запросов |
+- Вынос пользовательских сообщений в переменные
 
 ---
 
-## Execution Logging
+## Архитектура
 
-### Назначение
+### Workflows
 
-Превратить Telegram AI Gateway из просто работающего workflow в эксплуатационно пригодный инженерный сервис.
+**Main Workflow:** `workflows/Telegram AI Gateway.json`
+- 39 nodes (28 основных + 11 Execute Workflow для логирования)
+- Триггер: Telegram Trigger (On Message)
+- Обработка: линейный pipeline с error handling
+- Логирование: Execute Workflow nodes на критических этапах
 
-**Главная цель:** После внедрения должна существовать возможность восстановить полный жизненный цикл любого пользовательского запроса по журналу выполнения.
-
-### Архитектура
-
-**Принцип:** Логирование реализуется как отдельный reusable workflow.
-
-**Причины:**
-- Основной workflow не должен засоряться PostgreSQL-нодами
-- Логика записи журналов должна находиться в одном месте
-- Изменение формата логов должно выполняться только в одном workflow
-- Основной workflow должен содержать только бизнес-логику
-
-**Структура:**
-```
-Основной workflow (Telegram AI Gateway)
-       ↓
-Execute Workflow Node
-       ↓
-Telegram AI Gateway - Log Writer
-       ↓
-PostgreSQL (workflow_logs table)
-```
+**Log Writer Workflow:** `workflows/Telegram AI Gateway - Log Writer.json`
+- 4 nodes
+- Назначение: запись логов в PostgreSQL
+- Вход: JSON с данными события
+- Выход: подтверждение записи
 
 ### Компоненты
 
-**SQL Migration:**
-- Таблица workflow_logs с полями: id, created_at, request_id, workflow_name, workflow_version, stage, event_type, level, status, chat_id, user_id, input_url, duration_ms, message, error_code, error_message, details
-- Индексы для быстрого поиска по request_id, created_at, workflow_name, status, level
+**Telegram Integration:**
+- Telegram Trigger (On Message)
+- Send Message nodes
 
-**Log Writer Workflow:**
-- Отдельный reusable workflow
-- Принимает событие журналирования
-- Записывает в PostgreSQL
-- Не знает о Telegram, GigaChat, бизнес-логике
+**GigaChat Integration:**
+- Generate RqUID (OAuth requirement)
+- Get GigaChat Token (OAuth)
+- Check Token (error handling)
+- GigaChat (Chat Completions API)
+- Check Response (error handling)
 
-**Logging Points:**
+**Content Processing:**
+- Check URL (validation)
+- Load Page (HTTP Request)
+- Check Load Error (error handling)
+- Extract Article (Code node с fallback)
+- Check Text (validation)
+- Clean Text (stop markers)
+- Prepare Prompt (Set node)
 
-**Обязательные:**
-- REQUEST_RECEIVED — получение запроса от Telegram
-- URL_VALIDATED — успешная валидация URL
-- PAGE_LOADED / PAGE_LOAD_FAILED — загрузка страницы
-- ARTICLE_EXTRACTED / ARTICLE_EXTRACT_FAILED — извлечение статьи
-- TOKEN_RECEIVED / TOKEN_FAILED — получение токена GigaChat
-- LLM_COMPLETED / LLM_FAILED — генерация поста
-- TELEGRAM_SENT — отправка в Telegram
-- WORKFLOW_FINISHED / WORKFLOW_FAILED — завершение workflow
+**Message Handling:**
+- Split Message (до 4096 символов)
+- Send Message (Telegram node)
 
-**Дополнительные (опционально):**
-- PAGE_LOAD_STARTED
-- PROMPT_BUILT
-- TOKEN_REQUEST_STARTED
-- LLM_REQUEST_STARTED
-- MESSAGE_SPLIT
-- TELEGRAM_SEND_STARTED
+**Error Handling:**
+- Format Load Error
+- Format Auth Error
+- Format API Error
+- Send Error Message
 
-### Принципы
+**Logging:**
+- Generate Request ID
+- Execute Workflow nodes (11 штук)
 
-**request_id:**
-- Создаётся один раз
-- Используется во всех точках логирования
-- Не добавлять дополнительные Code nodes только ради прокидывания request_id
+### База данных
 
-**Console.log:**
-- Может остаться как вспомогательный механизм диагностики
-- Основным журналом выполнения считается PostgreSQL
+**PostgreSQL 15:**
+- Хранит credentials n8n
+- Хранит execution history
+- Хранит workflow definitions
+- Хранит таблицу workflow_logs
 
-**Log Writer:**
-- Не должен знать о Telegram
-- Не должен знать о GigaChat
-- Ничего не знает о бизнес-логике
-- Создан для Telegram AI Gateway, но реализован расширяемо
+**Миграции:**
+- `migrations/001_create_workflow_logs.sql`
+- `migrations/002_alter_workflow_logs_created_at.sql`
 
-### Критерий успешности
+---
 
-**После внедрения:**
-1. Каждый запрос полностью восстановим по журналу
-2. Последовательность событий видна по created_at
-3. Ошибки содержат error_code и error_message
-4. Успешные выполнения содержат status: SUCCESS
-5. Неудачные выполнения содержат status: FAILED
+## Параметры
+
+### LLM Configuration
+
+| Параметр | Значение | Описание |
+|----------|---------|----------|
+| `AI_PROVIDER` | `gigachat` | AI провайдер |
+| `CONTENT_SOURCE` | `url` | Источник контента |
+| `LLM_MODEL` | `GigaChat-2-Max` | Модель GigaChat |
+| `LLM_TEMPERATURE` | `0.1` | Температура модели |
+| `LLM_SYSTEM_PROMPT` | (см. workflow) | System prompt |
+| `LLM_USER_PROMPT` | (см. workflow) | User prompt template |
+
+### Limits
+
+| Параметр | Значение | Описание |
+|----------|---------|----------|
+| `LIMIT_TEXT_LENGTH` | `12000` | Максимальная длина текста |
+| `LIMIT_PROMPT_LENGTH` | `5000` | Максимальная длина промпта |
+| `LIMIT_MESSAGE_LENGTH` | `4096` | Максимальная длина сообщения |
+
+### HTTP Settings
+
+| Параметр | Значение | Описание |
+|----------|---------|----------|
+| `HTTP_LOAD_TIMEOUT` | `30000` | Timeout загрузки страницы (ms) |
+| `HTTP_API_TIMEOUT` | `60000` | Timeout GigaChat API (ms) |
+| `HTTP_LOAD_RETRIES` | `3` | Попытки загрузки |
+| `HTTP_LOAD_RETRY_INTERVAL` | `1000` | Интервал retry загрузки (ms) |
+| `HTTP_TOKEN_RETRIES` | `2` | Попытки токена |
+| `HTTP_TOKEN_RETRY_INTERVAL` | `500` | Интервал retry токена (ms) |
+| `HTTP_API_RETRIES` | `2` | Попытки GigaChat API |
+| `HTTP_API_RETRY_INTERVAL` | `1000` | Интервал retry GigaChat (ms) |
+
+### Extraction
+
+| Параметр | Значение | Описание |
+|----------|---------|----------|
+| `EXTRACT_SELECTORS` | `article,main,.tm-article-body,.tm-content` | CSS селекторы для извлечения |
+
+### User Messages
+
+Все пользовательские сообщения об ошибках на русском языке (см. Configuration node в workflow)
+
+---
+
+## Требования к развёртыванию
+
+### Docker Compose
+
+**Сервисы:**
+- n8n (версия 2.29.8)
+- PostgreSQL 15
+
+**Переменные окружения:**
+- `POSTGRES_PASSWORD` — пароль PostgreSQL
+- `N8N_BASIC_AUTH_USER` — пользователь n8n admin
+- `N8N_BASIC_AUTH_PASSWORD` — пароль n8n admin
+- `TELEGRAM_BOT_TOKEN` — токен Telegram-бота
+- `GIGACHAT_AUTH_KEY` — Base64-encoded GigaChat credentials
+- `WEBHOOK_URL` — URL для webhook (опционально)
+
+### Credentials
+
+**Telegram Bot API:**
+- Bot Token от @BotFather
+
+**GigaChat API:**
+- client_id и client_secret от developers.sber.ru
+- Base64 encoding: `echo -n "client_id:client_secret" | base64`
+
+**n8n Admin:**
+- Basic Auth для доступа к n8n UI
+
+### Миграции
+
+**Применяются автоматически при первом запуске:**
+- Создание таблицы workflow_logs
+- Добавление поля created_at
+
+---
+
+## Документация
+
+| Документ | Назначение |
+|----------|-----------|
+| [README.md](../README.md) | Описание проекта, quick start |
+| [architecture.md](architecture.md) | Архитектура проекта |
+| [workflow_overview.md](workflow_overview.md) | Обзор workflow |
+| [deployment_guide.md](deployment_guide.md) | Руководство по развёртыванию |
+| [logging-integration-guide.md](logging-integration-guide.md) | Интеграция логирования |
+| [known_issues.md](known_issues.md) | Известные проблемы |
+| [limitations.md](limitations.md) | Ограничения проекта |
+| [credentials-setup.md](credentials-setup.md) | Настройка credentials |
+
+---
+
+## Известные ограничения
+
+См. [limitations.md](limitations.md)
+
+---
+
+## Известные проблемы
+
+См. [known_issues.md](known_issues.md)
 
 ---
 
@@ -287,637 +264,66 @@ PostgreSQL (workflow_logs table)
 |-----|----------|-----------|
 | 1 | Пользователь отправляет URL статьи | Бот принимает сообщение |
 | 2 | Telegram Trigger активирует workflow | Workflow запускается |
-| 3 | Prepare Input извлекает URL | URL передаётся далее |
-| 4 | Check URL проверяет валидность | Если валиден → переход к шагу 6 |
-| 5 | Если URL невалиден → Send Error Message | Пользователь получает сообщение об ошибке |
-| 6 | Load Page загружает HTML | HTML получен |
-| 7 | Extract Article извлекает текст | Текст статьи извлечён |
-| 8 | Clean Text очищает текст | Очищенный текст |
-| 9 | Prepare Prompt формирует промпт | Промпт готов |
-| 10 | Generate RqUID создаёт UUID | RqUID для запроса |
-| 11 | Get GigaChat Token получает токен | access_token получен |
-| 12 | GigaChat генерирует пост | JSON с ответом |
-| 13 | Send Message отправляет результат | Пользователь получает пост |
+| 3 | Generate Request ID создаёт UUID | request_id для логирования |
+| 4 | Prepare Input извлекает URL | URL передаётся далее |
+| 5 | Check URL проверяет валидность | Если валиден → переход к шагу 7 |
+| 6 | Если URL невалиден → Send Error Message | Пользователь получает сообщение об ошибке |
+| 7 | Load Page загружает HTML | HTML получен (с retry) |
+| 8 | Extract Article извлекает текст | Текст статьи извлечён (с fallback) |
+| 9 | Check Text проверяет длину | Если текст > 100 символов → переход к шагу 11 |
+| 10 | Если текст короткий → Send Error Message | Пользователь получает сообщение об ошибке |
+| 11 | Clean Text очищает текст | Очищенный текст |
+| 12 | Prepare Prompt формирует промпт | Промпт готов |
+| 13 | Generate RqUID создаёт UUID | RqUID для GigaChat |
+| 14 | Get GigaChat Token получает токен | access_token получен (с retry) |
+| 15 | Check Token проверяет токен | Если токен валиден → переход к шагу 17 |
+| 16 | Если токен невалиден → Send Error Message | Пользователь получает сообщение об ошибке |
+| 17 | GigaChat генерирует пост | JSON с ответом (с retry) |
+| 18 | Check Response проверяет ответ | Если ответ валиден → переход к шагу 20 |
+| 19 | Если ответ невалиден → Send Error Message | Пользователь получает сообщение об ошибке |
+| 20 | Split Message разбивает ответ | Сообщения до 4096 символов |
+| 21 | Send Message отправляет результат | Пользователь получает пост |
 
 **Альтернативные потоки:**
 
-**A1: Страница не загрузилась**
-- Workflow перехватывает ошибку
-- Пользователь получает сообщение: "Не удалось загрузить страницу. Проверьте URL и повторите попытку."
-- Workflow завершается
-
-**A2: Текст не извлечён**
-- Пользователь получает сообщение: "Не удалось извлечь текст из статьи."
-- Workflow завершается
-
-**A3: GigaChat API недоступен**
-- Пользователь получает сообщение: "Сервис временно недоступен. Попробуйте позже."
-- Workflow завершается
-
-**Результат:**
-- Успех: Пользователь получает структурированный пост
-- Неудача: Пользователь получает понятное сообщение об ошибке
+- Ошибка загрузки страницы → Send Error Message с описанием ошибки
+- Ошибка извлечения текста → Send Error Message
+- Ошибка GigaChat API → Send Error Message с описанием ошибки
+- Ошибка отправки в Telegram → логирование ошибки
 
 ---
 
-## Целевой пользовательский сценарий
+## Метрики успеха
 
-**Отличия от исходного:**
-
-1. **Обработка ошибок:**
-   - Все ошибки перехватываются
-   - Пользователь получает информативные сообщения
-   - Workflow логирует ошибки
-
-2. **Retry-механизмы:**
-   - Сетевые ошибки обрабатываются с retry
-   - GigaChat API ошибки обрабатываются с retry
-
-3. **Длинные сообщения:**
-   - Сообщения длиннее 4096 символов разбиваются на части
-   - Каждая часть отправляется отдельным сообщением
-
-4. **Конфигурация:**
-   - Промпты и параметры вынесены в конфигурацию
-   - Секреты управляются через переменные окружения
-
-**Сценарий развёртывания:**
-
-| Шаг | Действие | Результат |
-|-----|----------|-----------|
-| 1 | Клонировать репозиторий | Файлы проекта на диске |
-| 2 | Скопировать .env.example в .env | Шаблон конфигурации |
-| 3 | Заполнить переменные окружения | Валидная конфигурация |
-| 4 | Запустить Docker Compose | Контейнеры запущены |
-| 5 | Импортировать workflow | Workflow доступен |
-| 6 | Настроить credentials | Telegram и GigaChat подключены |
-| 7 | Активировать workflow | Workflow запущен |
-| 8 | Отправить тестовый URL | Бот отвечает постом |
+| Метрика | Значение | Критерий |
+|---------|----------|----------|
+| Время выполнения | 5-30 секунд | Типичное время обработки |
+| Успешные запросы | >90% | При корректных URL |
+| Retry success rate | >95% | При временных ошибках |
+| Message length compliance | 100% | Сообщения ≤4096 символов |
+| Logging coverage | 100% | Все критические этапы логируются |
 
 ---
 
-## Целевая архитектура
+## Дальнейшее развитие
 
-### Высокоуровневая схема
+**Возможные улучшения (не в текущей версии):**
 
-```
-┌─────────────┐
-│   Telegram  │
-│   User      │
-└──────┬──────┘
-       │ URL статьи
-       ▼
-┌─────────────┐
-│  Telegram   │
-│  Bot API    │
-└──────┬──────┘
-       │ Webhook/Polling
-       ▼
-┌─────────────────────────────────────┐
-│              n8n Workflow           │
-│                                     │
-│  [Trigger] → [Process] → [Response] │
-│                                     │
-└──────┬──────────────────────────────┘
-       │
-       ▼
-┌─────────────┐
-│  GigaChat   │
-│  API        │
-└─────────────┘
-```
-
-### Инфраструктура
-
-```
-┌─────────────────────────────────────┐
-│            VPS / Docker Host        │
-│                                     │
-│  ┌─────────────────────────────┐   │
-│  │    Docker Compose           │   │
-│  │                             │   │
-│  │  ┌───────────────────────┐  │   │
-│  │  │   n8n container        │  │   │
-│  │  │   - port 5678          │  │   │
-│  │  │   - volumes:           │  │   │
-│  │  │     - n8n_data         │  │   │
-│  │  │     - n8n_files        │  │   │
-│  │  └───────────────────────┘  │   │
-│  └─────────────────────────────┘   │
-│                                     │
-└─────────────────────────────────────┘
-
-External dependencies:
-- Telegram Bot API
-- GigaChat API
-```
-
-### Отказ от ngrok
-
-В публичной версии проекта ngrok не используется. Вместо этого:
-- Развёртывание на VPS с публичным IP
-- HTTPS через reverse proxy или облачный сервис
-- Webhook URL настраивается через переменную окружения
+- Добавление других AI провайдеров (OpenAI, Anthropic)
+- Token caching для оптимизации
+- Rate limiting по пользователям
+- Мониторинг и алертинг
+- Horizontal scaling
 
 ---
 
-## Состав n8n Workflow
-
-### Архитектура workflow
-
-Workflow состоит из линейной цепочки обработки с одной веткой обработки ошибки невалидного URL:
-
-```
-Telegram Trigger
-       │
-       ▼
- Prepare Input
-       │
-       ▼
-   Check URL ───────[false]──→ Send Error Message
-       │
-      [true]
-       │
-       ▼
-   Load Page
-       │
-       ▼
- Extract Article
-       │
-       ▼
-   Clean Text
-       │
-       ▼
- Prepare Prompt
-       │
-       ▼
- Generate RqUID
-       │
-       ▼
- Get GigaChat Token
-       │
-       ▼
-    GigaChat
-       │
-       ▼
-  Send Message
-```
-
-### Ответственность нод
-
-**Telegram Trigger**
-- Назначение: Получение сообщений из Telegram
-- Вход: Webhook/Polling от Telegram Bot API
-- Выход: Message object с текстом и chat ID
-- Обработка ошибок: Не требуется (триггер)
-
-**Prepare Input**
-- Назначение: Извлечение URL из сообщения
-- Вход: Message object
-- Выход: URL string
-- Обработка ошибок: Валидация пустого сообщения
-
-**Check URL**
-- Назначение: Валидация формата URL
-- Вход: URL string
-- Выход: Boolean (valid/invalid)
-- Обработка ошибок: Ветка false → Send Error Message
-
-**Load Page**
-- Назначение: Загрузка HTML-страницы
-- Вход: URL string
-- Выход: HTML content
-- Обработка ошибок: Retry, timeout, HTTP errors
-
-**Extract Article**
-- Назначение: Извлечение текста статьи из HTML
-- Вход: HTML content
-- Выход: Article text (возможно с динамическим ключом)
-- Обработка ошибок: Проверка пустого результата
-
-**Clean Text**
-- Назначение: Очистка текста от мусора, обрезка до лимита
-- Вход: Article text
-- Выход: Cleaned text
-- Обработка ошибок: Проверка пустого результата, truncate
-
-**Prepare Prompt**
-- Назначение: Формирование промпта для GigaChat
-- Вход: Cleaned text
-- Выход: Prompt string
-- Обработка ошибок: Не требуется
-
-**Generate RqUID**
-- Назначение: Генерация UUID для запроса к GigaChat
-- Вход: Prompt string
-- Выход: Prompt + RqUID
-- Обработка ошибок: Не требуется
-
-**Get GigaChat Token**
-- Назначение: Получение access token для GigaChat API
-- Вход: RqUID + credentials
-- Выход: access_token
-- Обработка ошибок: Retry, auth errors
-
-**GigaChat**
-- Назначение: Генерация структурированного поста
-- Вход: access_token + prompt
-- Выход: Generated post
-- Обработка ошибок: Retry, API errors, timeout
-
-**Send Message**
-- Назначение: Отправка результата в Telegram
-- Вход: Generated post + chat ID
-- Выход: Success/Failure
-- Обработка ошибок: Message length, API errors
-
-**Send Error Message**
-- Назначение: Отправка сообщения об ошибке
-- Вход: Error message + chat ID
-- Выход: Success/Failure
-- Обработка ошибок: API errors
-
----
-
-## Внешние интеграции
-
-### Telegram Bot API
-
-**Требования:**
-- Valid Bot Token (от @BotFather)
-- HTTPS endpoint для webhook (опционально)
-- Или polling mode
-
-**Endpoints:**
-- getMe — проверка токена
-- sendMessage — отправка сообщения
-- setWebhook — установка webhook (опционально)
-
-**Ограничения:**
-- Maximum message length: 4096 characters
-- Rate limits: 30 msg/sec to same chat
-
-### GigaChat API
-
-**Требования:**
-- GigaChat API credentials (client_id, client_secret)
-- Scope: GIGACHAT_API_PERS
-- Valid RqUID для каждого запроса токена
-
-**Endpoints:**
-- /api/v2/oauth — получение access token
-- /api/v1/chat/completions — генерация текста
-
-**Параметры модели:**
-- Model: GigaChat-2-Max
-- Temperature: 0.1 (или из конфигурации)
-- Token lifetime: ~30 minutes
-
----
-
-## Требования к Docker/VPS/HTTPS-развёртыванию
-
-### Docker Compose
-
-**Требования:**
-- Конфигурация n8n в Docker Compose
-- Persistance данных через volumes
-- Конфигурация через environment variables
-- Возможность настройки webhook URL
-
-### VPS Requirements
-
-**Минимальные требования:**
-- 1 CPU, 1 GB RAM, 10 GB disk
-- Public IP
-- Docker и Docker Compose установлены
-
-**Рекомендуемые требования:**
-- 2 CPU, 2 GB RAM, 20 GB disk
-- Ubuntu 22.04 LTS
-
-### HTTPS Setup
-
-**Требования:**
-- HTTPS для n8n endpoint
-- Reverse proxy (Nginx, Caddy) или облачный сервис
-- Let's Encrypt сертификаты
-
-### Network Requirements
-
-**Требования:**
-- Outbound HTTPS to api.telegram.org
-- Outbound HTTPS to ngw.devices.sberbank.ru:9443
-- Outbound HTTPS to gigachat.devices.sberbank.ru
-- Outbound HTTP/HTTPS для загрузки статей
-
-**VPN Note:** В ограниченных сетях может потребоваться системный VPN.
-
----
-
-## Требования к конфигурации и секретам
-
-### Environment Variables
-
-**Обязательные переменные:**
-- N8N_BASIC_AUTH_USER — логин для n8n
-- N8N_BASIC_AUTH_PASSWORD — пароль для n8n
-- TELEGRAM_BOT_TOKEN — токен Telegram-бота
-- GIGACHAT_AUTH_BASIC — credentials для GigaChat
-
-**Опциональные переменные:**
-- WEBHOOK_URL — публичный URL для webhook
-- GIGACHAT_MODEL — название модели
-- GIGACHAT_TEMPERATURE — температура модели
-- MAX_TEXT_LENGTH — лимит длины текста
-- MAX_PROMPT_LENGTH — лимит длины промпта
-
-### n8n Credentials
-
-**Telegram:**
-- Credential type: Telegram API
-- Required: Bot Token
-
-**GigaChat:**
-- Credential type: HTTP Header Auth (custom)
-- Required: Authorization header
-
-### Security Requirements
-
-- Никогда не коммитить .env файлы
-- Использовать сильные пароли
-- Периодически ротировать credentials
-- Использовать HTTPS для всех коммуникаций
-- Рассмотреть IP whitelisting для admin interface
-
----
-
-## Требования к обработке ошибок
-
-### Категории ошибок
-
-**1. User Input Errors**
-- Invalid URL
-- Empty message
-
-**2. Network Errors**
-- Page load timeout
-- HTTP errors (404, 500)
-- Connection errors
-
-**3. Content Errors**
-- Empty article
-- Text too long
-
-**4. GigaChat API Errors**
-- Auth failed
-- Token expired
-- API unavailable
-- Rate limit
-
-**5. Telegram API Errors**
-- Invalid chat ID
-- Message too long
-- Bot blocked
-
-### Требования к сообщениям об ошибках
-
-- Сообщения должны быть понятны пользователю
-- Сообщения не должны содержать технические детали
-- Сообщения должны предлагать действие (повторить, проверить URL, обратиться к администратору)
-
----
-
-## Требования к Retry
-
-### Retry Policy
-
-**Load Page:**
-- Retry на network errors
-- Timeout configuration
-- Максимум 3 attempts
-
-**Get GigaChat Token:**
-- Retry на auth errors
-- Максимум 2 attempts
-
-**GigaChat API:**
-- Retry на API errors
-- Timeout configuration
-- Максимум 2 attempts
-
-### Требования к реализации
-
-- Exponential backoff между попытками
-- Логирование retry attempts
-- Graceful degradation при исчерпании retry
-
----
-
-## Требования к логированию
-
-### Log Levels
-
-**INFO:**
-- Workflow start/end
-- URL received
-- Page loaded successfully
-- Token obtained
-- GigaChat response received
-- Message sent
-
-**WARNING:**
-- Retrying operation
-- Text truncated
-
-**ERROR:**
-- Invalid URL
-- Page load failed
-- Article extraction failed
-- GigaChat auth failed
-- GigaChat API error
-- Telegram send failed
-
-### Требования к логам
-
-- Timestamp
-- Log level
-- Workflow name
-- Node name
-- Message
-- Context (url, chat_id, execution_id)
-
-### Log Retention
-
-- n8n execution history — configurable
-- External logs (если configured) — 30 days
-- Error logs — 90 days
-
----
-
-## Требования к ограничению длины Telegram-сообщений
-
-### Telegram API Limits
-
-- Maximum message length: 4096 characters
-
-### Handling Strategy
-
-**Требования:**
-- Проверка длины сообщения перед отправкой
-- Разбиение длинных сообщений на части
-- Respect word boundaries (не разрезать слова)
-- Number parts: "Часть 1/N:", "Часть 2/N:", etc.
-- Отправка частей последовательно
-
----
-
-## Требования к воспроизводимости
-
-### Deployment Validation Checklist
-
-**Prerequisites:**
-- Docker and Docker Compose installed
-- Git installed
-- Access to VPS or local Docker environment
-- Telegram Bot Token obtained
-- GigaChat API credentials obtained
-
-**Deployment Steps:**
-- Clone repository
-- Copy .env.example to .env
-- Fill environment variables
-- Run docker-compose up -d
-- Verify n8n is accessible
-- Import workflow JSON
-- Configure credentials
-- Activate workflow
-- Send test URL to bot
-- Receive structured post
-
-**Validation Tests:**
-- Bot responds to valid URL
-- Bot responds to invalid URL
-- Bot handles page load error
-- Bot handles GigaChat error
-- Bot handles long article
-- Bot handles long response
-
-### Reproducibility Requirements
-
-- Развёртывание на чистом Docker host
-- Нет ручных шагов после .env конфигурации
-- Нет скрытых зависимостей
-- Все secrets в .env
-- Все URLs configurable
-- Version pinning для n8n
-
----
-
-## Границы MVP
-
-### Входит в MVP
-
-✅ Telegram Trigger (On Message)
-✅ URL validation
-✅ Page loading
-✅ Article extraction
-✅ Text cleaning
-✅ Prompt preparation
-✅ GigaChat token acquisition
-✅ GigaChat chat completion
-✅ Telegram message sending
-✅ Error message for invalid URL
-✅ Docker Compose configuration
-✅ .env.example
-✅ Basic documentation
-✅ Workflow JSON
-
-### Не входит в MVP
-
-❌ Retry mechanisms (кроме basic n8n retry)
-❌ Advanced error handling (Error Trigger workflow)
-❌ Message splitting для long responses
-❌ Logging beyond n8n execution history
-❌ Configuration variables для prompts
-❌ Token caching
-❌ Rate limiting
-❌ Web interface
-❌ Analytics
-
----
-
-## Definition of Done
-
-Проект считается завершённым, если выполнены все следующие критерии:
-
-### Functional Requirements
-
-- [ ] Бот принимает URL статьи из Telegram
-- [ ] Бот валидирует URL
-- [ ] Бот загружает страницу
-- [ ] Бот извлекает текст статьи
-- [ ] Бот очищает текст от мусора
-- [ ] Бот формирует промпт
-- [ ] Бот получает токен GigaChat
-- [ ] Бот вызывает GigaChat API
-- [ ] Бот отправляет результат в Telegram
-- [ ] Бот отправляет сообщение об ошибке при невалидном URL
-- [ ] Бот обрабатывает ошибки загрузки страницы
-- [ ] Бот обрабатывает ошибки GigaChat API
-- [ ] Бот разбивает длинные сообщения
-
-### Non-Functional Requirements
-
-- [ ] Workflow воспроизводимо импортируется в n8n
-- [ ] Docker Compose конфигурация работает
-- [ ] .env.example содержит все необходимые переменные
-- [ ] Документация полная и актуальная
-
-### Documentation Requirements
-
-- [ ] README.md описывает проект
-- [ ] docs/architecture.md описывает архитектуру
-- [ ] docs/setup.md описывает установку
-- [ ] docs/deployment_guide.md описывает развёртывание
-- [ ] docs/workflow_overview.md описывает workflow
-- [ ] docs/limitations.md описывает ограничения
-- [ ] docs/known_issues.md описывает известные проблемы
-
-### Deployment Requirements
-
-- [ ] Проект разворачивается на чистом VPS
-- [ ] Проект работает без ngrok
-- [ ] Проект использует HTTPS
-- [ ] Deployment Validation пройден успешно
-
-### Quality Requirements
-
-- [ ] Код соответствует стандартам проекта
-- [ ] Документация не содержит ссылок на внутренние артефакты
-- [ ] Проект самодостаточен для внешнего пользователя
-- [ ] Нет захардкоженных секретов
-- [ ] Все параметры документированы
-
-### Delivery Requirements
-
-- [ ] GitHub-репозиторий создан
-- [ ] Ветка main содержит стабильную версию
-- [ ] Тег v1.0.0 создан
-- [ ] README.md содержит badges и описание
-- [ ] LICENSE файл добавлен
-- [ ] .gitignore настроен
-
----
-
-## Версионирование SPEC
-
-| Версия | Дата | Изменения |
-|--------|------|-----------|
-| 1.0 | 2026-07-08 | Начальная версия |
-| 1.1 | 2026-07-08 | Переработка по методологии APL: удалены детали реализации, добавлен раздел Engineering Experiment, сокращён backlog |
-| 1.2 | 2026-07-08 | Подготовка к публичации: удалены ссылки на внутренние документы, упрощён Definition of Done |
-
----
-
-**Конец SPEC.md**
+## Критерии готовности
+
+✅ Workflow реализован и протестирован
+✅ Обработка ошибок реализована
+✅ Retry-механизмы реализованы
+✅ Логирование реализовано
+✅ Configuration node создана
+✅ Документация написана
+✅ Deployment Validation пройден
+✅ Секреты защищены

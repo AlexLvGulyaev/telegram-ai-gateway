@@ -66,7 +66,8 @@ telegram-ai-gateway/
 
 | Файл | Назначение | Формат |
 |------|-----------|--------|
-| workflows/telegram-ai-gateway.json | Основной workflow обработки статей | JSON |
+| workflows/Telegram AI Gateway.json | Основной workflow обработки статей (39 nodes) | JSON |
+| workflows/Telegram AI Gateway - Log Writer.json | Workflow для записи логов в PostgreSQL (4 nodes) | JSON |
 
 ### Документация
 

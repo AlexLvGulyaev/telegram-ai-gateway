@@ -64,7 +64,7 @@
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                  │
 │  Data: PostgreSQL 15                                            │
-│  Logs: n8n execution history                                    │
+│  Logs: PostgreSQL (workflow_logs table) via Log Writer         │
 └────────────────────────────┬────────────────────────────────────┘
                              │
                              │ HTTP Requests
@@ -88,15 +88,21 @@
 | n8n | n8nio/n8n:2.29.8 | Workflow engine |
 | postgres | postgres:15-alpine | База данных n8n |
 
-### n8n Workflow
+### n8n Workflows
 
-**Название:** Telegram AI Gateway
+**Основной workflow:** Telegram AI Gateway
 
 **Тип:** Event-driven workflow с линейной обработкой
 
 **Триггер:** Telegram Trigger (On Message)
 
-**Ноды:** 28 основных нод + 11 Execute Workflow нод для логирования = 39 нод
+**Ноды:** 39 nodes (28 основных + 11 Execute Workflow для логирования)
+
+**Log Writer workflow:** Telegram AI Gateway - Log Writer
+
+**Тип:** Reusable workflow для логирования
+
+**Ноды:** 4 nodes
 
 ### База данных
 
@@ -104,6 +110,7 @@
 - Хранит credentials n8n
 - Хранит execution history
 - Хранит workflow definitions
+- Хранит таблицу workflow_logs для журналирования
 
 ### Внешние интеграции
 
