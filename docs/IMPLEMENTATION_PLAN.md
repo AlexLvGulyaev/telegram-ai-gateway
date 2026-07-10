@@ -54,10 +54,8 @@ telegram-ai-gateway/
 │   ├── 001_create_workflow_logs.sql      # Создание таблицы логов
 │   └── 002_alter_workflow_logs_created_at.sql # Добавление created_at
 │
-├── scripts/
-│   └── validate-deployment.sh      # Скрипт валидации развёртывания
-│
-└── n8n_files/                      # Каталог для файлов n8n (пустой, .gitkeep)
+└── scripts/
+    └── validate-deployment.sh      # Скрипт валидации развёртывания
 ```
 
 ---
