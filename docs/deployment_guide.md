@@ -229,85 +229,6 @@ docker exec telegram-ai-gateway-n8n n8n list:workflow
 
 ### 5. Синхронизация пароля PostgreSQL
 
-**ВНИМАНИЕ:** Этот раздел нужен ТОЛЬКО если вы изменили пароль в .env после первого запуска!
-
-**Подключитесь к VPS:**
-
-```bash
-ssh user@your-vps-ip
-```
-
-**Установите Docker:**
-
-```bash
-# Ubuntu/Debian
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-```
-
-**Установите Docker Compose:**
-
-```bash
-sudo apt install docker-compose-plugin
-```
-
-### 2. Клонирование проекта
-
-```bash
-# Создайте директорию для проектов
-mkdir -p ~/projects
-cd ~/projects
-
-# Клонируйте репозиторий
-git clone https://github.com/AlexLvGulyaev/telegram-ai-gateway.git
-cd telegram-ai-gateway
-```
-
-### 3. Настройка переменных окружения
-
-```bash
-# Скопируйте пример конфигурации
-cp .env.example .env
-
-# Отредактируйте файл
-nano .env
-```
-
-**Обязательные переменные:**
-
-```env
-# PostgreSQL
-POSTGRES_PASSWORD=<secure_password>
-
-# n8n
-N8N_BASIC_AUTH_USER=admin
-N8N_BASIC_AUTH_PASSWORD=<secure_password>
-
-# Telegram
-TELEGRAM_BOT_TOKEN=<your_bot_token>
-
-# GigaChat
-GIGACHAT_AUTH_KEY=<your_credentials>
-
-# Webhook URL (для production)
-WEBHOOK_URL=https://your-domain.com
-```
-
-### 4. Запуск проекта
-
-```bash
-# Запустите Docker Compose
-docker compose up -d
-
-# Проверьте статус
-docker compose ps
-
-# Проверьте логи
-docker compose logs -f n8n
-```
-
-### 5. Синхронизация пароля PostgreSQL
-
 **Критически важно:** Пароль PostgreSQL в .env должен совпадать с паролем в БД!
 
 docker-compose.yml использует переменную `POSTGRES_PASSWORD` из .env для обоих контейнеров:
@@ -419,7 +340,7 @@ CLI импорт workflow технически сложен из-за пробе
 
 **Важно:** Workflow требует три credentials для работы.
 
-#### 7.1. Telegram Bot API Credential
+#### 8.1. Telegram Bot API Credential
 
 **Название в workflow:** `telegram-ai-gateway-bot`
 
@@ -431,7 +352,7 @@ CLI импорт workflow технически сложен из-за пробе
    - **Bot Token:** значение из `TELEGRAM_BOT_TOKEN` в `.env`
 5. Нажмите **Save**
 
-#### 7.2. GigaChat Basic Auth Credential
+#### 8.2. GigaChat Basic Auth Credential
 
 **Название в workflow:** `gigachat-basic-auth`
 
@@ -443,7 +364,7 @@ CLI импорт workflow технически сложен из-за пробе
    - **Header Value:** `Basic <GIGACHAT_AUTH_KEY>` (замените `<GIGACHAT_AUTH_KEY>` на значение из `.env`)
 4. Нажмите **Save**
 
-#### 7.3. PostgreSQL Credential (для Log Writer)
+#### 8.3. PostgreSQL Credential (для Log Writer)
 
 **Название в workflow:** `Telegram AI Gateway PostgreSQL`
 
