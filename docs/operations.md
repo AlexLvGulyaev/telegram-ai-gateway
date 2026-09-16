@@ -151,9 +151,13 @@ docker compose up -d
 **Вариант 2: Импорт через CLI**
 
 ```bash
-# Используйте n8n CLI для импорта
-docker exec telegram-ai-gateway-n8n n8n import:workflow --input=/home/node/.n8n/workflows/telegram-ai-gateway.json
+# Файл должен быть виден внутри контейнера (docker cp в /tmp)
+docker cp "workflows/Telegram AI Gateway.json" telegram-ai-gateway-n8n:/tmp/wf_main.json
+docker exec telegram-ai-gateway-n8n n8n import:workflow --input=/tmp/wf_main.json
+docker exec telegram-ai-gateway-n8n rm /tmp/wf_main.json
 ```
+
+**Важно:** импорт на запущенном n8n сбрасывает флаг Active импортированного workflow — после импорта реактивируйте workflow и перезапустите n8n (перезапуск перерегистрирует Telegram webhook).
 
 ## 🛡️ 4. Безопасность
 

@@ -119,7 +119,7 @@ docker compose logs -f n8n
 
 ```bash
 curl http://localhost:5678/healthz
-# Ожидаемый ответ: OK
+# Ожидаемый ответ: {"status":"ok"}
 ```
 
 ### 4. Первый вход в n8n
@@ -507,6 +507,15 @@ sudo ln -s /etc/nginx/sites-available/telegram-ai-gateway /etc/nginx/sites-enabl
 sudo nginx -t
 sudo systemctl restart nginx
 ```
+
+> 💡 **Если reverse-proxy работает через общую Docker-сеть (например, Traefik)**, контейнерам проекта нужно членство в этой сети — иначе proxy отвечает 502:
+>
+> ```bash
+> docker network connect <имя_сети_proxy> telegram-ai-gateway-n8n
+> docker network connect <имя_сети_proxy> telegram-ai-gateway-postgres
+> ```
+>
+> Проверка: `curl https://your-domain.com/healthz`.
 
 **Получите SSL-сертификат:**
 
