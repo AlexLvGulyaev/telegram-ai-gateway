@@ -49,22 +49,37 @@ flowchart TB
     subgraph Workflow[Workflow Pipeline]
         Trigger[Telegram Trigger] --> Prepare[Prepare Input]
         Prepare --> CheckURL{Check URL}
-        CheckURL -->|valid| Load[Load Page]
         CheckURL -->|invalid| ErrorURL[Send Error<br/>Invalid URL]
-        Load -->|error| ErrorLoad[Send Error<br/>Load Failed]
-        Load -->|success| Extract[Extract Article]
-        Extract -->|error| ErrorExtract[Send Error<br/>Extract Failed]
-        Extract -->|success| Clean[Clean Text]
-        Clean --> Prompt[Prepare Prompt]
+
+        CheckURL -->|valid| Load[Load Page]
+        Load -->|error| CheckLoad{Check Load Error}
+        CheckLoad -->|error| FormatLoad[Format Load Error]
+        FormatLoad --> ErrorLoad[Send Error<br/>Load Failed]
+
+        CheckLoad -->|success| Extract[Extract Article]
+
+        Extract --> Clean[Clean Text]
+        Clean --> CheckText{Check Text}
+        CheckText -->|empty| ErrorExtract[Send Error<br/>Extract Failed]
+
+        CheckText -->|has text| Prompt[Prepare Prompt]
         Prompt --> RqUID[Generate RqUID]
         RqUID --> Token[Get GigaChat Token]
-        Token -->|error| ErrorAuth[Send Error<br/>Auth Failed]
-        Token -->|success| GigaChat[GigaChat API]
-        GigaChat -->|error| ErrorAPI[Send Error<br/>API Failed]
-        GigaChat -->|success| Split[Split Message]
+        Token -->|error| CheckToken{Check Token}
+        CheckToken -->|invalid| FormatAuth[Format Auth Error]
+        FormatAuth --> ErrorAuth[Send Error<br/>Auth Failed]
+
+        CheckToken -->|valid| GigaChat[GigaChat API]
+        GigaChat -->|error| CheckResponse{Check Response}
+        CheckResponse -->|invalid| FormatAPI[Format API Error]
+        FormatAPI --> ErrorAPI[Send Error<br/>API Unavailable]
+
+        CheckResponse -->|valid| Split[Split Message]
         Split --> Send[Send Message]
     end
 ```
+
+Retry-политики по нодам — [workflow_overview.md](workflow_overview.md); полный разбор ошибок — раздел «Обработка ошибок» ниже.
 
 ### Docker Services
 
@@ -282,36 +297,11 @@ flowchart TB
 
 ## 📊 7. Мониторинг
 
-### Текущий мониторинг
-
-- n8n execution history
-- Docker logs
-- PostgreSQL logs
-
-### Рекомендуемый мониторинг
-
-- Prometheus + Grafana
-- Log aggregation (ELK/Loki)
-- Alerting на ошибки
-- Health checks
+Текущий мониторинг (n8n execution history, Docker logs, structured logging) и рекомендуемый (Prometheus + Grafana, log aggregation, alerting) — [deployment_guide.md](deployment_guide.md), раздел «Мониторинг». Журналирование исполнения — [logging-integration-guide.md](logging-integration-guide.md).
 
 ## 💾 8. Резервное копирование
 
-### Что бэкапить
-
-- PostgreSQL data volume
-- n8n data volume
-- `.env` файл (без секретов в git)
-
-### Стратегия бэкапа
-
-```bash
-# Бэкап PostgreSQL
-docker exec postgres pg_dump -U n8n n8n > backup_$(date +%Y%m%d).sql
-
-# Бэкап n8n data
-docker run --rm -v n8n_data:/data -v $(pwd):/backup alpine tar czf /backup/n8n_backup.tar.gz -C /data .
-```
+Бэкапятся: PostgreSQL data volume, n8n data volume, `.env` (без секретов в git). Команды и процедура — [deployment_guide.md](deployment_guide.md), раздел «Бэкап и восстановление».
 
 ---
 

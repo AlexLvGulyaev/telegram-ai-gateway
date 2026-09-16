@@ -108,14 +108,24 @@ flowchart LR
 
 ## 📚 5. Документация
 
-| Документ | Назначение |
-|----------|------------|
-| [Deployment Guide](docs/deployment_guide.md) | Развёртывание на VPS |
-| [Architecture](docs/architecture.md) | Архитектура системы |
-| [Workflow Overview](docs/workflow_overview.md) | Описание workflow и нод |
-| [Credentials Setup](docs/credentials-setup.md) | Настройка credentials |
-| [Limitations](docs/limitations.md) | Ограничения проекта |
-| [Known Issues](docs/known_issues.md) | Известные проблемы |
+Маршрут: «какой документ для какого вопроса».
+
+| Вопрос | Документ |
+|--------|----------|
+| Как развернуть и эксплуатировать (VPS + HTTPS / локальный Docker, troubleshooting, бэкап, обновление) | [Deployment Guide](docs/deployment_guide.md) |
+| Как настроить credentials | [Credentials Setup](docs/credentials-setup.md) |
+| Как устроена система (C4-диаграммы, потоки данных, обработка ошибок, безопасность) | [Architecture](docs/architecture.md) |
+| Как работает workflow изнутри (ноды, версии workflow, переменные окружения) | [Workflow Overview](docs/workflow_overview.md) |
+| Как устроено журналирование исполнения | [Logging Integration Guide](docs/logging-integration-guide.md) |
+| Какими возможностями обладает продукт и для кого | [SPEC](docs/SPEC.md) |
+| В каком состоянии находится проект | [PROJECT_STATE](docs/PROJECT_STATE.md) |
+| Какие архитектурные решения приняты и почему | [Architecture Decisions](docs/architecture-decisions.md) |
+| Какие известны проблемы и как их обходить | [Known Issues](docs/known_issues.md) |
+| Какие есть ограничения платформы | [Limitations](docs/limitations.md) |
+| Какие негативные сценарии протестированы | [Negative Tests](docs/negative_tests.md) |
+| Как выбиралась версия n8n (историческое исследование) | [Engineering Investigation](docs/engineering-investigation-n8n-update.md) |
+| Как планировалась реализация (архивный план) | [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) |
+| Что менялось в документации | [CHANGE_LOG](docs/CHANGE_LOG.md) |
 
 ---
 
@@ -127,7 +137,7 @@ flowchart LR
 - ✅ Логирование в PostgreSQL
 - ✅ Разбиение длинных сообщений
 
-**Релиз:** GitHub Edition — Error Handling Complete
+**Релиз:** GitHub Edition — Production Ready (Deployment Validation пройдена)
 
 ---
 

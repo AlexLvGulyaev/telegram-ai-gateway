@@ -1,117 +1,64 @@
 # 📊 Telegram AI Gateway · PROJECT_STATE
 
----
-
-## ℹ️ 1. Версия n8n
-
-**Текущая версия:** n8n 2.29.8 (stable)
-
-**Docker image:** `docker.n8n.io/n8nio/n8n:2.29.8`
-
-**Обоснование:**
-- Версия 1.120.x содержит критическую регрессию frontend (ошибка ldap)
-- n8n 2.29.8 — production-ready, включает все security patches
-- Рекомендуется разработчиками n8n для новых self-hosted проектов
-
-**Главные изменения в n8n 2.x:**
-- Task runners включены по умолчанию (Code node изолирован)
-- Environment variables заблокированы в Code nodes по умолчанию
-- PostgreSQL user default изменился с `root` на `postgres`
-- Требуется `CODE_ENABLE_STDOUT=true` для вывода console.log
-
-Подробнее: [engineering-investigation-n8n-update.md](engineering-investigation-n8n-update.md)
+Паспорт состояния проекта. Точка входа для любого агента, который начинает работу с кейсом.
 
 ---
 
-## 🗺️ 2. Source of Truth
-
-**Основной workflow:** `workflows/Telegram AI Gateway.json`
-
-**Log Writer workflow:** `workflows/Telegram AI Gateway - Log Writer.json`
-
-**Статус:** ✅ Production Ready, GitHub Portfolio Edition
-
----
-
-## 🎯 3. Project Summary
+## 🎯 1. Project Summary
 
 **Название:** Telegram AI Gateway
 
-**Тип:** Engineering-grade Telegram Bot
+**Тип:** Engineering-grade Telegram Bot (n8n workflow, Docker Compose, PostgreSQL)
 
 **Назначение:** Telegram-бот для автоматизированной переработки статей в структурированные посты для Telegram с использованием n8n и GigaChat API.
 
-**Бизнес-идея:** Пользователь отправляет ссылку на статью в Telegram-бота. Бот автоматически загружает статью, очищает текст, формирует промпт, вызывает GigaChat API и возвращает структурированный пост для публикации в Telegram-канале.
+**Бизнес-идея:** Пользователь отправляет ссылку на статью в Telegram-бота. Бот автоматически загружает статью, очищает текст, формирует промпт, вызывает GigaChat API и возвращает структированный пост для публикации в Telegram-канале.
 
 **Позиционирование:** GitHub Portfolio Edition с высоким уровнем инженерной зрелости.
 
-**Целевая аудитория:** Контент-менеджеры, редакторы Telegram-каналов, авторы, нуждающиеся в автоматизации переработки длинных статей в формат Telegram-постов.
-
 ---
 
-## 📊 4. Current Status
+## 📊 2. Current Status
 
 **Статус проекта:** Production Ready (GitHub Edition)
 
 **Текущий этап:** GitHub Publication Complete
 
-**Готовность к публикации:** Deployment Validation пройден, документация актуальна, секреты защищены
+**Готовность:** Deployment Validation пройдена, документация актуальна, секреты защищены.
+
+**Source of Truth:**
+- Основной workflow: `workflows/Telegram AI Gateway.json` (39 nodes: 28 основных + 11 Execute Workflow для логирования)
+- Log Writer workflow: `workflows/Telegram AI Gateway - Log Writer.json` (4 nodes)
+
+**Известные проблемы и ограничения:** [known_issues.md](known_issues.md), [limitations.md](limitations.md)
+
+---
+
+## 🔍 3. Market Validation
+
+Рыночная валидация внешними заказчиками не проводилась: проект создавался как учебно-демонстрационный для портфолио, а не под конкретный заказ.
+
+Рыночный сигнал, на который опирается кейс: автоматизация переработки статей в посты — типовой запрос контент-менеджеров, редакторов Telegram-каналов и авторов (позиционирование и аудитория — [SPEC.md](SPEC.md)).
+
+---
+
+## 💰 4. Commercial Assessment
+
+Коммерческая оценка не проводилась: кейс позиционирован как учебно-демонстрационный (см. [SPEC.md](SPEC.md) — раздел «Бизнес-идея»).
+
+Портфельная ценность: демонстрация компетенций интеграции n8n, GigaChat API и Telegram Bot API, включая обработку ошибок, retry-механизмы и журналирование исполнения в PostgreSQL.
 
 ---
 
 ## 🏗️ 5. Architecture
 
-### Выполненные архитектурные решения
+Реализованные архитектурные решения (обоснования и альтернативы — [architecture-decisions.md](architecture-decisions.md), диаграммы — [architecture.md](architecture.md)):
 
-#### 1. Minimal Provider Contract
-
-**Реализовано:**
-- Параметр `AI_PROVIDER` в Configuration node (значение: `gigachat`)
-- Provider-independent имена параметров (LLM_MODEL, LLM_TEMPERATURE)
-- Выделены GigaChat-specific nodes
-- Точки подключения для будущих провайдеров
-
-**Provider-specific nodes (GigaChat):**
-- Generate RqUID — OAuth requirement
-- Get GigaChat Token — OAuth endpoint
-- Check Token — error handling
-- GigaChat — Chat Completions API
-- Check Response — error handling
-
-#### 2. Content Source Abstraction
-
-**Реализовано:**
-- Параметр `CONTENT_SOURCE` в Configuration node (значение: `url`)
-- Выделены URL-specific nodes
-
-**URL-specific nodes:**
-- Check URL (валидация формата URL)
-- Load Page (HTTP GET по URL)
-- Check Load Error
-- Extract Article (HTML extraction)
-
-#### 3. Extraction Strategy с Fallback
-
-**Реализовано:**
-- Code node с fallback-стратегией
-- Приоритет селекторов: `article, main, .tm-article-body, .tm-content`
-- Конфигурация: `EXTRACT_SELECTORS`
-
-#### 4. Request Context / Correlation ID
-
-**Реализовано:**
-- Нода `Generate Request ID` после Telegram Trigger
-- UUID v4 для каждого запроса
-- request_id прокидывается через все ноды
-- Используется в логировании и error handling
-
-#### 5. Execution Logging
-
-**Реализовано:**
-- Отдельный Log Writer workflow
-- PostgreSQL таблица workflow_logs
-- Точки логирования на всех критических этапах
-- Документация: [logging-integration-guide.md](logging-integration-guide.md)
+1. **Minimal Provider Contract** — параметр `AI_PROVIDER`, provider-independent имена параметров, выделенные GigaChat-specific nodes.
+2. **Content Source Abstraction** — параметр `CONTENT_SOURCE`, выделенные URL-specific nodes.
+3. **Extraction Strategy с Fallback** — приоритет CSS-селекторов, конфигурация `EXTRACT_SELECTORS`.
+4. **Request Context / Correlation ID** — `request_id` (UUID v4) прокидывается через все ноды.
+5. **Execution Logging** — отдельный Log Writer workflow, таблица `workflow_logs` в PostgreSQL ([logging-integration-guide.md](logging-integration-guide.md)).
 
 ---
 
@@ -174,7 +121,32 @@
 
 ---
 
-## 📜 8. Status History
+## 🔧 8. Key Technology Areas
+
+- n8n workflow engine (v2.29.8, stable — выбор версии обоснован в [architecture-decisions.md](architecture-decisions.md) и [engineering-investigation-n8n-update.md](engineering-investigation-n8n-update.md))
+- PostgreSQL database (v15)
+- Docker Compose deployment
+- Telegram Bot API integration
+- GigaChat API integration (OAuth + Chat Completions)
+- Error handling и retry mechanisms
+- Execution logging
+- Configuration management
+
+---
+
+## ✅ 9. Decision
+
+Проект готов к публикации на GitHub как демонстрационный AI MVP с высоким уровнем инженерной зрелости. Публикация выполнена 2026-07-10.
+
+---
+
+## 🚀 10. Next Steps
+
+Нет запланированных следующих этапов. Проект в статусе Production Ready.
+
+---
+
+## 📜 11. Status History
 
 | Дата | Статус | Комментарий |
 |------|--------|--------------|
@@ -189,59 +161,9 @@
 
 ---
 
-## 🚨 9. Known Issues and Limitations
+## 📚 12. Documentation
 
-См. [known_issues.md](known_issues.md) и [limitations.md](limitations.md)
-
----
-
-## 🔍 10. Market Validation
-
-См. [SPEC.md](SPEC.md) — раздел "Целевая аудитория" и "Позиционирование"
-
----
-
-## 💰 11. Commercial Assessment
-
-См. [SPEC.md](SPEC.md) — раздел "Бизнес-идея"
-
----
-
-## 🔧 12. Key Technology Areas
-
-- n8n workflow engine (v2.29.8)
-- PostgreSQL database (v15)
-- Docker Compose deployment
-- Telegram Bot API integration
-- GigaChat API integration (OAuth + Chat Completions)
-- Error handling и retry mechanisms
-- Execution logging
-- Configuration management
-
----
-
-## ✅ 13. Decision
-
-Проект готов к публикации на GitHub как демонстрационный AI MVP с высоким уровнем инженерной зрелости.
-
----
-
-## 🚀 14. Next Steps
-
-Нет запланированных следующих этапов. Проект в статусе Production Ready.
-
----
-
-## 📚 15. Documentation
-
-- [SPEC.md](SPEC.md) — Продуктовая спецификация
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — План реализации
-- [architecture.md](architecture.md) — Архитектура проекта
-- [workflow_overview.md](workflow_overview.md) — Обзор workflow
-- [deployment_guide.md](deployment_guide.md) — Руководство по развёртыванию
-- [logging-integration-guide.md](logging-integration-guide.md) — Интеграция логирования
-- [known_issues.md](known_issues.md) — Известные проблемы
-- [limitations.md](limitations.md) — Ограничения проекта
+Маршрут по документации: [README.md](../README.md) — карта «какой документ для какого вопроса».
 
 ---
 

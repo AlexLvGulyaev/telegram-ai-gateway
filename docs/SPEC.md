@@ -64,67 +64,13 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 
 ## 🏗️ 3. Архитектура
 
-### Workflows
+Система состоит из двух n8n-workflows и PostgreSQL:
 
-**Main Workflow:** `workflows/Telegram AI Gateway.json`
-- 39 nodes (28 основных + 11 Execute Workflow для логирования)
-- Триггер: Telegram Trigger (On Message)
-- Обработка: линейный pipeline с error handling
-- Логирование: Execute Workflow nodes на критических этапах
+- **Основной workflow** `workflows/Telegram AI Gateway.json` (39 nodes: 28 основных + 11 Execute Workflow для логирования) — event-driven pipeline: приём URL из Telegram → загрузка и извлечение статьи → очистка текста → промпт → GigaChat API → разбиение и отправка поста; на каждом этапе — проверка ошибок и user-friendly сообщения.
+- **Log Writer workflow** `workflows/Telegram AI Gateway - Log Writer.json` (4 nodes) — reusable-workflow журналирования событий в PostgreSQL (`workflow_logs`).
+- **PostgreSQL 15** — credentials n8n, execution history, журнал `workflow_logs`.
 
-**Log Writer Workflow:** `workflows/Telegram AI Gateway - Log Writer.json`
-- 4 nodes
-- Назначение: запись логов в PostgreSQL
-- Вход: JSON с данными события
-- Выход: подтверждение записи
-
-### Компоненты
-
-**Telegram Integration:**
-- Telegram Trigger (On Message)
-- Send Message nodes
-
-**GigaChat Integration:**
-- Generate RqUID (OAuth requirement)
-- Get GigaChat Token (OAuth)
-- Check Token (error handling)
-- GigaChat (Chat Completions API)
-- Check Response (error handling)
-
-**Content Processing:**
-- Check URL (validation)
-- Load Page (HTTP Request)
-- Check Load Error (error handling)
-- Extract Article (Code node с fallback)
-- Check Text (validation)
-- Clean Text (stop markers)
-- Prepare Prompt (Set node)
-
-**Message Handling:**
-- Split Message (до 4096 символов)
-- Send Message (Telegram node)
-
-**Error Handling:**
-- Format Load Error
-- Format Auth Error
-- Format API Error
-- Send Error Message
-
-**Logging:**
-- Generate Request ID
-- Execute Workflow nodes (11 штук)
-
-### База данных
-
-**PostgreSQL 15:**
-- Хранит credentials n8n
-- Хранит execution history
-- Хранит workflow definitions
-- Хранит таблицу workflow_logs
-
-**Миграции:**
-- `migrations/001_create_workflow_logs.sql`
-- `migrations/002_alter_workflow_logs_created_at.sql`
+Состав и назначение нод — [workflow_overview.md](workflow_overview.md); архитектура и C4-диаграммы (Context L1 / Container L2, обработка ошибок, безопасность) — [architecture.md](architecture.md).
 
 ---
 
@@ -176,52 +122,16 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 
 ## 🚀 5. Требования к развёртыванию
 
-### Docker Compose
-
-**Сервисы:**
-- n8n (версия 2.29.8)
-- PostgreSQL 15
-
-**Переменные окружения:**
-- `POSTGRES_PASSWORD` — пароль PostgreSQL
-- `N8N_BASIC_AUTH_USER` — пользователь n8n admin
-- `N8N_BASIC_AUTH_PASSWORD` — пароль n8n admin
-- `TELEGRAM_BOT_TOKEN` — токен Telegram-бота
-- `GIGACHAT_AUTH_KEY` — Base64-encoded GigaChat credentials
-- `WEBHOOK_URL` — URL для webhook (опционально)
-
-### Credentials
-
-**Telegram Bot API:**
-- Bot Token от @BotFather
-
-**GigaChat API:**
-- client_id и client_secret от developers.sber.ru
-- Base64 encoding: `echo -n "client_id:client_secret" | base64`
-
-**n8n Admin:**
-- Basic Auth для доступа к n8n UI
-
-### Миграции
-
-**Применяются автоматически при первом запуске:**
-- Создание таблицы workflow_logs
-- Добавление поля created_at
+- Docker Compose: n8n 2.29.8 + PostgreSQL 15.
+- Переменные окружения (`.env`): `POSTGRES_PASSWORD`, `N8N_BASIC_AUTH_USER/PASSWORD`, `TELEGRAM_BOT_TOKEN`, `GIGACHAT_AUTH_KEY`, `WEBHOOK_URL` (опционально).
+- Три credentials в n8n (Telegram Bot API, GigaChat Header Auth, PostgreSQL) — [credentials-setup.md](credentials-setup.md).
+- Процедура развёртывания и эксплуатации — [deployment_guide.md](deployment_guide.md) (локальный Docker и VPS+HTTPS).
 
 ---
 
 ## 📚 6. Документация
 
-| Документ | Назначение |
-|----------|-----------|
-| [README.md](../README.md) | Описание проекта, quick start |
-| [architecture.md](architecture.md) | Архитектура проекта |
-| [workflow_overview.md](workflow_overview.md) | Обзор workflow |
-| [deployment_guide.md](deployment_guide.md) | Руководство по развёртыванию |
-| [logging-integration-guide.md](logging-integration-guide.md) | Интеграция логирования |
-| [known_issues.md](known_issues.md) | Известные проблемы |
-| [limitations.md](limitations.md) | Ограничения проекта |
-| [credentials-setup.md](credentials-setup.md) | Настройка credentials |
+Полная карта «какой документ для какого вопроса» — [README.md](../README.md), раздел «Документация».
 
 ---
 

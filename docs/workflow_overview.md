@@ -48,38 +48,7 @@
 
 ## 🔀 3. Диаграмма workflow
 
-```mermaid
-flowchart TB
-    Trigger[Telegram Trigger] --> Prepare[Prepare Input]
-    Prepare --> CheckURL{Check URL}
-    CheckURL -->|invalid| ErrorURL[Send Error<br/>Invalid URL]
-
-    CheckURL -->|valid| Load[Load Page]
-    Load -->|error| CheckLoad{Check Load Error}
-    CheckLoad -->|error| FormatLoad[Format Load Error]
-    FormatLoad --> ErrorLoad[Send Error<br/>Load Failed]
-
-    CheckLoad -->|success| Extract[Extract Article]
-
-    Extract --> Clean[Clean Text]
-    Clean --> CheckText{Check Text}
-    CheckText -->|empty| ErrorExtract[Send Error<br/>Extract Failed]
-
-    CheckText -->|has text| Prompt[Prepare Prompt]
-    Prompt --> RqUID[Generate RqUID]
-    RqUID --> Token[Get GigaChat Token]
-    Token -->|error| CheckToken{Check Token}
-    CheckToken -->|invalid| FormatAuth[Format Auth Error]
-    FormatAuth --> ErrorAuth[Send Error<br/>Auth Failed]
-
-    CheckToken -->|valid| GigaChat[GigaChat API]
-    GigaChat -->|error| CheckResponse{Check Response}
-    CheckResponse -->|invalid| FormatAPI[Format API Error]
-    FormatAPI --> ErrorAPI[Send Error<br/>API Unavailable]
-
-    CheckResponse -->|valid| Split[Split Message]
-    Split --> Send[Send Message]
-```
+Полная диаграмма основного workflow (по нодам, включая ветки обработки ошибок) — [architecture.md](architecture.md), раздел «Внутренняя структура основного workflow».
 
 ---
 
@@ -665,21 +634,7 @@ console.log('[Node Name] Key data:', value);
 
 ## ⚠️ 7. Ограничения
 
-### Telegram API
-
-- Максимальная длина сообщения: 4096 символов
-- Rate limits: 30 сообщений/секунду в один чат
-
-### GigaChat API
-
-- Token lifetime: ~30 минут
-- Rate limits: определяются тарифом
-
-### Workflow
-
-- Максимальная длина текста: 12000 символов
-- Максимальная длина промпта: 5000 символов
-- Максимальная длина сообщения: 4096 символов
+Ограничения Telegram API, GigaChat API и workflow (лимиты длины, token lifetime, rate limits) — [limitations.md](limitations.md).
 
 ---
 
@@ -700,30 +655,13 @@ Workflow использует следующие переменные из `.env
 
 ## 🔑 9. Credentials
 
-Workflow требует следующие credentials:
-
-1. **Telegram Bot Token** — токен от @BotFather
-2. **GigaChat Basic Auth** — Base64-encoded client_id:client_secret
+Требуемые credentials и инструкции по настройке — [credentials-setup.md](credentials-setup.md).
 
 ---
 
 ## 📊 10. Мониторинг
 
-### n8n Execution History
-
-Все выполнения workflow сохраняются в n8n execution history и доступны через n8n UI.
-
-### Structured Logging
-
-Структурированные логи через `console.log` в Code нодах с префиксом `[Node Name]`.
-
-### Error Tracking
-
-Все ошибки логируются с контекстом:
-- Node name
-- Error code
-- Error message
-- User-friendly message
+Выполнения видны в n8n execution history; полная процедура мониторинга (n8n, Docker, PostgreSQL, журнал workflow_logs) — [deployment_guide.md](deployment_guide.md), раздел «Мониторинг».
 
 ---
 
