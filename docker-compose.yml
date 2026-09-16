@@ -66,6 +66,12 @@ services:
       # Logging
       - N8N_LOG_LEVEL=${N8N_LOG_LEVEL:-info}
 
+      # TLS: доверие к российскому корневому CA (Минцифры) для проверки
+      # сертификата GigaChat API. Файлы в certs/ — официальные сертификаты
+      # с gosuslugi.ru/crt (отпечаток root сверяется в Deployment Guide §2).
+      # NODE_EXTRA_CA_CERTS дополняет системное доверие, не заменяет его.
+      - NODE_EXTRA_CA_CERTS=/certs/ca-bundle.pem
+
       # Executions
       - EXECUTIONS_MODE=regular
       - EXECUTIONS_DATA_SAVE_ON_ERROR=all
@@ -74,6 +80,7 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - ./n8n_files:/home/node/.n8n-files
+      - ./certs/ca-bundle.pem:/certs/ca-bundle.pem:ro
 
     networks:
       - telegram-ai-gateway

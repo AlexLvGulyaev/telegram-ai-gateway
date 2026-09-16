@@ -248,7 +248,7 @@
           ]
         },
         "options": {
-          "allowUnauthorizedCerts": true,
+          "allowUnauthorizedCerts": false,
           "timeout": "={{ $('Configuration').item.json.HTTP_LOAD_TIMEOUT }}"
         }
       },
@@ -289,7 +289,7 @@
         "specifyBody": "json",
         "jsonBody": "={{\n{\n  \"model\": $(\"Configuration\").item.json.LLM_MODEL,\n  \"temperature\": $(\"Configuration\").item.json.LLM_TEMPERATURE,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": $(\"Configuration\").item.json.LLM_SYSTEM_PROMPT\n    },\n    {\n      \"role\": \"user\",\n      \"content\": $(\"Prepare Prompt\").item.json.prompt\n    }\n  ]\n}\n}}",
         "options": {
-          "allowUnauthorizedCerts": true,
+          "allowUnauthorizedCerts": false,
           "timeout": "={{ $('Configuration').item.json.HTTP_API_TIMEOUT }}"
         }
       },

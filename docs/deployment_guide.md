@@ -25,6 +25,13 @@
 - Telegram Bot Token (от @BotFather)
 - GigaChat API credentials (client_id и client_secret)
 
+**Проверка сертификата GigaChat API** работает из коробки: репозиторий содержит российский корневой и промежуточный CA Минцифры (`certs/russian_trusted_root_ca.cer`, `certs/russian_trusted_sub_ca.cer`, бандл `certs/ca-bundle.pem`), а docker-compose монтирует бандл и задаёт `NODE_EXTRA_CA_CERTS`. HTTP-ноды GigaChat в workflow работают с включенной проверкой сертификата. Сертификат root действует до 2032-02-27 — после истечения заменить файлы `certs/` (официальный источник — [gosuslugi.ru/crt](https://www.gosuslugi.ru/crt)). Контроль подлинности root-сертификата (отпечаток SHA-1):
+
+```bash
+openssl x509 -in certs/russian_trusted_root_ca.cer -noout -fingerprint -sha1
+# Ожидаемо: 8F:F9:15:CC:AB:7B:C1:6F:8C:5C:80:99:D5:3E:0E:11:5B:3A:EC:2F
+```
+
 ## 🔀 3. Режимы работы
 
 **Единственный работоспособный режим — Webhook.** Telegram Trigger в n8n при активации workflow регистрирует webhook в Telegram API; polling-фоллбэка у триггера нет. Telegram API принимает только HTTPS-адреса: при пустом `WEBHOOK_URL` активация завершается ошибкой «Bad request - please check your parameters» и бот не получает сообщения (подтверждено [Deployment Validation](deployment_validation_report.md), прогон 2026-09-16).

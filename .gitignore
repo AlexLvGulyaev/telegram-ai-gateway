@@ -39,6 +39,8 @@ format-load-error-fix.js
 credentials/
 *.key
 *.pem
+# Exception: публичный CA-бандл Минцифры для проверки сертификата GigaChat (не секрет, см. docs/deployment_guide.md §2)
+!certs/ca-bundle.pem
 
 # APL internal artifacts (not for GitHub)
 PROJECT_GOAL.md

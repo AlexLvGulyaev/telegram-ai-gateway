@@ -177,6 +177,7 @@ docker-compose up -d
 telegram-ai-gateway/
 ├── workflows/              # Main workflow (39 нод) и Log Writer (4 ноды) для импорта в n8n
 ├── migrations/             # SQL-миграции: таблица workflow_logs
+├── certs/                  # Российский корневой CA (Минцифры) для проверки сертификата GigaChat
 ├── scripts/                # Служебные скрипты (validate-deployment.sh)
 ├── docs/                   # Документация по трём аудиториям + скриншоты
 ├── docker-compose.yml      # n8n + PostgreSQL
