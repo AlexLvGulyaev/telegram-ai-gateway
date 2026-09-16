@@ -11,6 +11,7 @@
       "id": "a4bd015a-3c26-4925-bff9-9c856d55f50f",
       "name": "Telegram Trigger",
       "type": "n8n-nodes-base.telegramTrigger",
+      "webhookId": "telegram-webhook",
       "typeVersion": 1,
       "position": [
         8864,
