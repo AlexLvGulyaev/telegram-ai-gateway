@@ -56,12 +56,12 @@ GitHub.
 
 | ID | Файл | Категория | Тезис | Используется в |
 |----|------|-----------|-------|----------------|
-| 1 | `TGW_tg_valid.png` | `tg` | Успешная обработка: пользователь отправляет ссылку на статью — бот возвращает структурированный пост, готовый к публикации | `README.md` (Демо) |
-| 2 | `TGW_tg_errors.png` | `tg` | Обработка ошибок: внятные сообщения на русском — система различает DNS-ошибки, HTTP-статусы (404, 403, 500), SSL-проблемы и ошибки AI-сервиса | `README.md` (Демо) |
+| 1 | `TGW_tg_valid.png` | `tg` | Успешная обработка: пользователь отправляет ссылку на статью — бот возвращает структурированный пост, готовый к публикации | `README.md` (Демо), `docs/user_guide.md` (Как пользоваться) |
+| 2 | `TGW_tg_errors.png` | `tg` | Обработка ошибок: внятные сообщения на русском — система различает DNS-ошибки, HTTP-статусы (404, 403, 500), SSL-проблемы и ошибки AI-сервиса | `README.md` (Демо), `docs/user_guide.md` (Сообщения об ошибках) |
 | 3 | `TGW_main_workflow.png` | `flow` | Основной workflow в n8n (39 нод): маршрут Telegram Trigger → Load Page → Extract Article → Clean Text → GigaChat → Split Message → Send Message с Check-нодами ошибок | Служебное свидетельство (см. §5) |
 | 4 | `TGW_log_workflow.png` | `flow` | Log Writer workflow (4 ноды): Execute Workflow → Log Writer → PostgreSQL; каждый этап с `request_id` | Служебное свидетельство (см. §5) |
-| 5 | `taig-portfolio-light.png` | `portfolio` | Витрина кейса LIGHT (1672×941) — hero-иллюстрация карточки кейса на витрине ai-portfolio | Витрина ai-portfolio |
-| 6 | `taig-portfolio-dark.png` | `portfolio` | Та же витрина DARK — тёмная тема карточки кейса | Витрина ai-portfolio |
+| 5 | `taig-portfolio-light.png` | `portfolio` | Витрина кейса LIGHT (1672×941) — hero-иллюстрация README и карточки кейса на витрине ai-portfolio | `README.md` (hero LIGHT), Витрина ai-portfolio |
+| 6 | `taig-portfolio-dark.png` | `portfolio` | Та же витрина DARK — hero-иллюстрация architecture и тёмная тема карточки кейса | `docs/architecture.md` (hero DARK), Витрина ai-portfolio |
 
 ---
 
@@ -69,7 +69,9 @@ GitHub.
 
 | Документ | Категории медиа |
 |----------|-----------------|
-| `README.md` | `tg` — диалоги успеха и ошибок (Демо) |
+| `README.md` | `portfolio` (hero LIGHT), `tg` — витрина, диалоги успеха и ошибок (Демо) |
+| `docs/architecture.md` | `portfolio` (hero DARK) — архитектурная витрина |
+| `docs/user_guide.md` | `tg` — шаги пользователя и сообщения об ошибках |
 | Витрина ai-portfolio | `portfolio` — hero-иллюстрация карточки кейса |
 | `flow`-скриншоты | Служебные свидетельства реализации: не привязаны к текущим документам слоя 1–2 (в README не используются по решению владельца); исторически — архивный `IMPLEMENTATION_PLAN.md` |
 

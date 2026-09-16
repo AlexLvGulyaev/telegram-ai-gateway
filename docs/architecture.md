@@ -1,5 +1,7 @@
 # 🏗️ Telegram AI Gateway · ARCHITECTURE
 
+<img src="screenshots/taig-portfolio-dark.png" alt="Telegram AI Gateway — архитектурная витрина кейса (DARK)">
+
 Документ описывает архитектуру проекта Telegram AI Gateway.
 
 ## 🌐 1. Context Diagram (C4 Level 1)
