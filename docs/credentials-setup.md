@@ -122,7 +122,7 @@ curl -X POST "https://ngw.devices.sberbank.ru:9443/api/v2/oauth" \
 3. Выберите тип: **PostgreSQL**
 4. Введите:
    - **Credential Name:** `Telegram AI Gateway PostgreSQL`
-   - **Host:** `postgres` (имя контейнера в Docker сети)
+   - **Host:** `telegram-ai-gateway-postgres` (уникальное имя контейнера)
    - **Port:** `5432`
    - **Database:** `n8n` (или значение из `POSTGRES_DB` в `.env`)
    - **User:** `n8n` (или значение из `POSTGRES_USER` в `.env`)
@@ -198,7 +198,7 @@ curl -u admin:<N8N_BASIC_AUTH_PASSWORD> http://localhost:5678/api/v1/credentials
 **Решение:**
 1. Проверьте, что PostgreSQL контейнер запущен: `docker compose ps`
 2. Проверьте логи: `docker compose logs postgres`
-3. Убедитесь, что credential использует `postgres` как host (имя контейнера)
+3. Убедитесь, что credential использует `telegram-ai-gateway-postgres` как host (уникальное имя контейнера; имя сервиса `postgres` может конфликтовать с другой БД в общей Docker-сети — см. [Deployment Guide, «Docker DNS-коллизия»](deployment_guide.md))
 4. Проверьте пароль: `POSTGRES_PASSWORD` в `.env`
 
 ---

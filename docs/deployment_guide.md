@@ -936,6 +936,7 @@ docker compose up -d
 - Ошибка: `Error: getaddrinfo EAI_AGAIN postgres`
 - Ошибка: `password authentication failed for user "n8n"`
 - n8n не может найти хост `postgres`
+- Циклический recovery-loop: `Recovery attempt N failed: password authentication failed`
 
 **Причины:**
 
@@ -956,6 +957,28 @@ docker restart telegram-ai-gateway-n8n
 **2. Пароль PostgreSQL не синхронизирован:**
 
 См. раздел "5. Синхронизация пароля PostgreSQL".
+
+**3. Docker DNS-коллизия алиаса `postgres` в общей сети (инцидент 2026-08-15):**
+
+Если n8n подключён к общей сети (например, `n8n_default` — обязательна для Traefik reverse proxy),
+а в этой сети **другой** контейнер держит alias `postgres` (compose service name = сетевой alias),
+Docker DNS смешивает кандидатов со всех сетей контейнера. n8n может стабильно резолвить
+`postgres` на **чужую** БД с другим паролем → бесконечный `password authentication failed`,
+хотя пароль правильный и родной postgres healthy.
+
+Диагностика (изнутри контейнера n8n):
+
+```bash
+docker exec telegram-ai-gateway-n8n node -e "require('dns').lookup('postgres',(e,a)=>console.log(a||e.code))"
+# Ожидание: IP родного postgres (сеть telegram-ai-gateway), а не чужого контейнера
+```
+
+Решение — использовать **уникальные имена хостов** вместо имени сервиса:
+
+- в `docker-compose.yml`: `DB_POSTGRESDB_HOST=telegram-ai-gateway-postgres` (не `postgres`);
+- в n8n credential `Telegram AI Gateway PostgreSQL`: Host = `telegram-ai-gateway-postgres`
+  (Log Writer подключается через credential, а не через переменные окружения!);
+- после правки credential перезапустить n8n (`docker restart telegram-ai-gateway-n8n`), чтобы сбросить кеш credentials.
 
 ### Проблема: Telegram не отправляет сообщения
 
