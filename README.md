@@ -137,7 +137,7 @@ docker-compose up -d
    - PostgreSQL (для Log Writer)
 3. Примените миграции и активируйте workflow
 
-**Подробное руководство:** [Deployment Guide](docs/deployment_guide.md) — развёртывание на VPS с HTTPS и локальный Docker-режим.
+**Подробное руководство:** [Deployment Guide](docs/deployment_guide.md) — развёртывание на VPS с HTTPS и локальный Docker-режим; эксплуатация — [Operations Guide](docs/operations.md).
 
 ---
 
@@ -157,7 +157,8 @@ docker-compose up -d
 | Документ | О чём |
 |----------|-------|
 | [User Guide](docs/user_guide.md) | Как пользоваться ботом: сообщения об ошибках, советы |
-| [Deployment Guide](docs/deployment_guide.md) | Развёртывание (VPS + HTTPS / локальный Docker), эксплуатация, troubleshooting, бэкап, обновление |
+| [Deployment Guide](docs/deployment_guide.md) | Развёртывание (VPS + HTTPS / локальный Docker), чеклист Deployment Validation |
+| [Operations Guide](docs/operations.md) | Эксплуатация: мониторинг, бэкап, обновление, безопасность, troubleshooting |
 | [Credentials Setup](docs/credentials-setup.md) | Настройка credentials: Telegram, GigaChat, PostgreSQL |
 | [Limitations](docs/limitations.md) | Ограничения платформы, известные проблемы и обходные пути |
 

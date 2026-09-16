@@ -473,11 +473,11 @@ ORDER BY created_at;
 
 ### Мониторинг
 
-Текущий мониторинг (n8n execution history, Docker logs, structured logging) и рекомендуемый (Prometheus + Grafana, log aggregation, alerting) — [deployment_guide.md](deployment_guide.md), раздел «Мониторинг». Журналирование исполнения — §6 выше.
+Текущий мониторинг (n8n execution history, Docker logs, structured logging) и рекомендуемый (Prometheus + Grafana, log aggregation, alerting) — [operations.md](operations.md), §1. Журналирование исполнения — §6 выше.
 
 ### Резервное копирование
 
-Бэкапятся: PostgreSQL data volume, n8n data volume, `.env` (без секретов в git). Команды и процедура — [deployment_guide.md](deployment_guide.md), раздел «Бэкап и восстановление».
+Бэкапятся: PostgreSQL data volume, n8n data volume, `.env` (без секретов в git). Команды и процедура — [operations.md](operations.md), §2.
 
 ---
 

@@ -1,35 +1,29 @@
 # 🚀 Telegram AI Gateway · Deployment Guide
 
-Руководство по развёртыванию Telegram AI Gateway на VPS с HTTPS.
+Руководство по развёртыванию Telegram AI Gateway: локальный Docker-режим и production на VPS с HTTPS. Эксплуатация развёрнутого экземпляра — [Operations Guide](operations.md); отчёт о фактическом прогоне Deployment Validation — [Deployment Validation Report](deployment_validation_report.md).
 
 ## ℹ️ 1. Версия n8n
 
-**Текущая версия:** n8n 2.29.8 (stable)
+**Текущая версия:** n8n 2.29.8 (stable) — `docker.n8n.io/n8nio/n8n:2.29.8`
 
-**Docker image:** `docker.n8n.io/n8nio/n8n:2.29.8`
-
-**Важно:** Проект использует n8n 2.x с изменениями по сравнению с версией 1.x:
+Проект использует n8n 2.x с изменениями по сравнению с 1.x:
 
 - Task runners включены по умолчанию (Code node изолирован)
 - Environment variables заблокированы в Code nodes по умолчанию
 - PostgreSQL user default изменился с `root` на `postgres`
 - Требуется `CODE_ENABLE_STDOUT=true` для вывода console.log
 
-Несовместимость с n8n 1.120.x выявлена в ходе инженерного исследования проекта; выбор стабильной версии 2.29.8 зафиксирован в docker-compose.yml.
-
----
+Несовместимость с n8n 1.120.x выявлена в ходе инженерного исследования проекта; выбор стабильной версии 2.29.8 зафиксирован в docker-compose.yml. При обновлении n8n — [Operations Guide](operations.md), «Обновление».
 
 ## 📋 2. Предпосылки
 
-Для локального развёртывания (§5) достаточно Docker на локальной машине; для production на VPS (§6):
+Для локального развёртывания (§4) достаточно Docker на локальной машине; для production на VPS (§5):
 
 - VPS с публичным IP
 - Доменное имя (опционально, для webhook режима)
 - Docker и Docker Compose установлены
 - Telegram Bot Token (от @BotFather)
 - GigaChat API credentials (client_id и client_secret)
-
----
 
 ## 🔀 3. Режимы работы
 
@@ -47,71 +41,7 @@
 - **Рекомендуется для:** Production
 - **Конфигурация:** `WEBHOOK_URL=https://your-domain.com`
 
----
-
-## 🧪 4. Deployment Validation
-
-Deployment Validation состоит из двух уровней проверки:
-
-### Infrastructure Validation
-
-**Цель:** Проверить развёртывание инфраструктуры без внешних зависимостей.
-
-**Что проверяется:**
-- Docker Compose запускается
-- Контейнеры healthy (PostgreSQL, n8n)
-- Миграции БД применены
-- Workflows импортированы
-- Health endpoints отвечают
-
-**Требования:**
-- Docker и Docker Compose установлены
-- .env файл настроен (допускаются placeholder значения для Telegram и GigaChat)
-- PostgreSQL password может быть любым
-
-**Не требует:**
-- Реальных Telegram Bot Token
-- Реальных GigaChat credentials
-
-**Результат:** Infrastructure PASSED
-
----
-
-### Integration Validation
-
-**Цель:** Проверить полную работоспособность системы с реальными внешними сервисами.
-
-**Что проверяется:**
-- Credentials созданы в n8n
-- Workflows активированы
-- Telegram polling/webhook работает
-- GigaChat API отвечает
-- PostgreSQL logging работает
-- Полный пользовательский сценарий
-
-**Требования:**
-- Реальный Telegram Bot Token (от @BotFather)
-- Реальные GigaChat credentials (от developers.sber.ru)
-- Реальный PostgreSQL password
-
-**Важно:**
-- **Никогда не коммитьте** .env файл
-- **Никогда не публикуйте** credentials в логах, отчётах или документации
-- В отчётах допускается только **факт использования** реальных credentials
-- Конкретные значения секретов остаются только в локальном .env файле
-
-**Результат:** Integration PASSED
-
----
-
-### Порядок выполнения
-
-1. **Сначала Infrastructure Validation** — проверка инфраструктуры
-2. **Затем Integration Validation** — проверка с реальными сервисами
-
----
-
-## 💻 5. Локальное развёртывание (Docker Compose)
+## 💻 4. Локальное развёртывание (Docker Compose)
 
 Режим для разработки и тестирования: тот же Docker Compose-стек, только на локальной машине, без VPS и HTTPS (polling вместо webhook).
 
@@ -163,7 +93,7 @@ cp .env.example .env
 nano .env
 ```
 
-**Обязательные переменные** (все — до первого запуска; см. §6.3 о требованиях к паролям):
+**Обязательные переменные** (все — до первого запуска; см. §5.3 о требованиях к паролям):
 
 ```env
 POSTGRES_PASSWORD=<secure_password>
@@ -236,11 +166,11 @@ docker compose restart
 docker compose restart n8n
 ```
 
-Обновление — в §11 (Обновление), одинаково для локального и VPS-окружения.
+Обновление — в [Operations Guide](operations.md), «Обновление»; одинаково для локального и VPS-окружения.
 
 ---
 
-## 🖥️ 6. Развёртывание на VPS
+## 🖥️ 5. Развёртывание на VPS
 
 ### 1. Подготовка VPS
 
@@ -313,7 +243,7 @@ WEBHOOK_URL=https://your-domain.com
 1. **Пароль PostgreSQL должен быть установлен ПЕРЕД первым запуском!**
    - При первом запуске PostgreSQL инициализируется с паролем из .env
    - n8n контейнер подключится к БД с этим же паролем
-   - Если изменить пароль в .env после первого запуска, потребуется синхронизация (см. раздел 6)
+   - Если изменить пароль в .env после первого запуска, потребуется синхронизация (см. §5.5)
 
 2. **Не используйте специальные символы в пароле PostgreSQL:**
    - Избегайте: `$`, `\`, `"`, `'`
@@ -532,7 +462,7 @@ curl http://localhost:5678/healthz
 # Должен вернуться ответ: {"status":"ok"}
 ```
 
-## 🔐 7. Настройка HTTPS
+## 🔐 6. Настройка HTTPS
 
 ### Вариант 1: Nginx + Let's Encrypt
 
@@ -623,7 +553,7 @@ sudo systemctl restart caddy
 - Настроит HTTPS
 - Будет автоматически обновлять сертификаты
 
-## 📡 8. Настройка Webhook
+## 📡 7. Настройка Webhook
 
 ### Polling vs Webhook
 
@@ -661,513 +591,13 @@ curl https://your-domain.com/healthz
 
 **4. Telegram автоматически установит webhook при активации workflow.**
 
-## 📊 9. Мониторинг
+## ✅ 8. Чеклист Deployment Validation
 
-### Health Checks
-
-**Docker healthcheck:**
-
-```bash
-docker compose ps
-```
-
-Ожидаемый статус: `healthy`
-
-**n8n health endpoint:**
-
-```bash
-curl http://localhost:5678/healthz
-```
-
-Ожидаемый ответ: `OK`
-
-### Логи
-
-**Просмотр логов n8n:**
-
-```bash
-docker compose logs -f n8n
-```
-
-**Просмотр логов PostgreSQL:**
-
-```bash
-docker compose logs -f postgres
-```
-
-**Экспорт логов в файл:**
-
-```bash
-docker compose logs n8n > n8n-$(date +%Y%m%d).log
-```
-
-### Метрики
-
-**Docker stats:**
-
-```bash
-docker stats
-```
-
-**Использование диска:**
-
-```bash
-docker system df
-```
-
-## 💾 10. Бэкап и восстановление
-
-### Бэкап PostgreSQL
-
-```bash
-# Создайте директорию для бэкапов
-mkdir -p ~/backups
-
-# Бэкап базы данных
-docker exec telegram-ai-gateway-postgres pg_dump -U n8n n8n > ~/backups/n8n-$(date +%Y%m%d).sql
-
-# Бэкап Docker volumes
-docker run --rm -v telegram-ai-gateway_n8n_data:/data -v ~/backups:/backup alpine tar czf /backup/n8n-data-$(date +%Y%m%d).tar.gz -C /data .
-```
-
-### Автоматический бэкап
-
-**Создайте cron job:**
-
-```bash
-crontab -e
-```
-
-```cron
-# Ежедневный бэкап в 2:00
-0 2 * * * cd ~/projects/telegram-ai-gateway && docker exec telegram-ai-gateway-postgres pg_dump -U n8n n8n > ~/backups/n8n-$(date +\%Y\%m\%d).sql
-```
-
-### Восстановление
-
-```bash
-# Остановите n8n
-docker compose stop n8n
-
-# Восстановите базу данных
-cat ~/backups/n8n-20260108.sql | docker exec -i telegram-ai-gateway-postgres psql -U n8n n8n
-
-# Запустите n8n
-docker compose start n8n
-```
-
-## 🔄 11. Обновление
-
-### Обновление кода
-
-```bash
-# Остановите контейнеры
-docker compose down
-
-# Получите последние изменения
-git pull
-
-# Запустите контейнеры
-docker compose up -d
-```
-
-### Обновление Docker образов
-
-```bash
-# Остановите контейнеры
-docker compose down
-
-# Получите последние образы
-docker compose pull
-
-# Запустите контейнеры
-docker compose up -d
-```
-
-### Обновление n8n workflow
-
-**Вариант 1: Импорт из файла**
-
-1. Откройте n8n UI
-2. Workflows → Import from File
-3. Выберите `workflows/telegram-ai-gateway.json`
-
-**Вариант 2: Импорт через CLI**
-
-```bash
-# Используйте n8n CLI для импорта
-docker exec telegram-ai-gateway-n8n n8n import:workflow --input=/home/node/.n8n/workflows/telegram-ai-gateway.json
-```
-
-## 🛡️ 12. Безопасность
-
-### Firewall
-
-**UFW (Ubuntu):**
-
-```bash
-# Разрешите SSH
-sudo ufw allow ssh
-
-# Разрешите HTTP/HTTPS
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-
-# Запретите всё остальное
-sudo ufw enable
-
-# Проверьте статус
-sudo ufw status
-```
-
-### Fail2ban
-
-**Установка:**
-
-```bash
-sudo apt install fail2ban
-```
-
-**Конфигурация:**
-
-```bash
-sudo nano /etc/fail2ban/jail.local
-```
-
-```ini
-[sshd]
-enabled = true
-maxretry = 3
-bantime = 1h
-```
-
-### Credentials Security
-
-**Критически важно:**
-
-1. **Никогда не коммитьте** .env файл в репозиторий
-   - Добавьте `.env` в `.gitignore`
-   - Используйте `.env.example` как шаблон
-
-2. **Никогда не публикуйте** credentials:
-   - В логах выполнения
-   - В отчётах о валидации
-   - В документации проекта
-   - В скриншотах или примерах
-
-3. **В отчётах о валидации**:
-   - Допускается: "Использованы реальные Telegram Bot Token и GigaChat credentials"
-   - Недопустимо: Публикация конкретных значений токенов или ключей
-
-4. **Рекомендации по безопасности**:
-   - Регулярно ротируйте Telegram Bot Token
-   - Используйте разные credentials для dev/prod
-   - Ограничьте доступ к .env файлу: `chmod 600 .env`
-   - Рассмотрите использование секретов менеджера для production
-
-### SSL/TLS
-
-**Проверка SSL:**
-
-```bash
-# Let's Encrypt
-sudo certbot certificates
-
-# Проверка SSL
-curl -vI https://your-domain.com
-```
-
-### Обновление системы
-
-```bash
-# Обновите пакеты
-sudo apt update
-sudo apt upgrade -y
-
-# Очистите старые пакеты
-sudo apt autoremove -y
-```
-
-## 🚨 13. Troubleshooting
-
-### Проблема: n8n не запускается
-
-**Решение:**
-
-```bash
-# Проверьте логи
-docker compose logs n8n
-
-# Проверьте порты
-sudo netstat -tlnp | grep 5678
-
-# Перезапустите
-docker compose restart n8n
-```
-
-### Проблема: PostgreSQL не запускается
-
-**Решение:**
-
-```bash
-# Проверьте логи
-docker compose logs postgres
-
-# Проверьте права на volume
-ls -la /var/lib/docker/volumes/telegram-ai-gateway_postgres_data
-
-# Пересоздайте volume
-docker compose down -v
-docker compose up -d
-```
-
-### Проблема: Webhook не работает
-
-**Решение:**
-
-1. Убедитесь, что HTTPS настроен правильно
-2. Проверьте WEBHOOK_URL в .env
-3. Проверьте, что порт 443 открыт в firewall
-4. Проверьте логи n8n на ошибки
-
-### Проблема: n8n не может подключиться к PostgreSQL
-
-**Симптомы:**
-- Ошибка: `Error: getaddrinfo EAI_AGAIN postgres`
-- Ошибка: `password authentication failed for user "n8n"`
-- n8n не может найти хост `postgres`
-- Циклический recovery-loop: `Recovery attempt N failed: password authentication failed`
-
-**Причины:**
-
-**1. Контейнеры в разных сетях:**
-
-Если n8n контейнер не может найти хост `postgres`, проверьте сети:
-
-```bash
-# Проверить сети контейнеров
-docker inspect telegram-ai-gateway-postgres --format '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}'
-docker inspect telegram-ai-gateway-n8n --format '{{range .NetworkSettings.Networks}}{{.NetworkID}}{{end}}'
-
-# Если сети разные, подключите n8n к сети postgres
-docker network connect <network_name> telegram-ai-gateway-n8n
-docker restart telegram-ai-gateway-n8n
-```
-
-**2. Пароль PostgreSQL не синхронизирован:**
-
-См. раздел "5. Синхронизация пароля PostgreSQL".
-
-**3. Docker DNS-коллизия алиаса `postgres` в общей сети (инцидент 2026-08-15):**
-
-Если n8n подключён к общей сети (например, `n8n_default` — обязательна для Traefik reverse proxy),
-а в этой сети **другой** контейнер держит alias `postgres` (compose service name = сетевой alias),
-Docker DNS смешивает кандидатов со всех сетей контейнера. n8n может стабильно резолвить
-`postgres` на **чужую** БД с другим паролем → бесконечный `password authentication failed`,
-хотя пароль правильный и родной postgres healthy.
-
-Диагностика (изнутри контейнера n8n):
-
-```bash
-docker exec telegram-ai-gateway-n8n node -e "require('dns').lookup('postgres',(e,a)=>console.log(a||e.code))"
-# Ожидание: IP родного postgres (сеть telegram-ai-gateway), а не чужого контейнера
-```
-
-Решение — использовать **уникальные имена хостов** вместо имени сервиса:
-
-- в `docker-compose.yml`: `DB_POSTGRESDB_HOST=telegram-ai-gateway-postgres` (не `postgres`);
-- в n8n credential `Telegram AI Gateway PostgreSQL`: Host = `telegram-ai-gateway-postgres`
-  (Log Writer подключается через credential, а не через переменные окружения!);
-- после правки credential перезапустить n8n (`docker restart telegram-ai-gateway-n8n`), чтобы сбросить кеш credentials.
-
-### Проблема: Telegram не отправляет сообщения
-
-**Решение:**
-
-1. Проверьте токен: `curl https://api.telegram.org/bot<token>/getMe`
-2. Убедитесь, что workflow активен
-3. Проверьте credentials в n8n
-4. Проверьте логи n8n
-
-### Проблема: Webhook не регистрируется (404 Not Found)
-
-**Симптомы:**
-- n8n показывает "Activated workflow"
-- Webhook возвращает 404: "webhook is not registered"
-- Telegram возвращает "Wrong response from the webhook: 404 Not Found"
-
-**Причина:**
-- Имя node содержит пробел (например, "Telegram Trigger")
-- n8n генерирует webhook path с пробелом: `workflow-id/telegram trigger/webhook`
-- В БД сохраняется как: `workflow-id/telegram%20trigger/webhook`
-- Telegram отправляет запрос с `%20`, но n8n не находит webhook
-
-**Решение:**
-1. Переименовать node: "Telegram Trigger" → "TelegramTrigger" (без пробела)
-2. Сохранить workflow (Ctrl+S)
-3. Активировать workflow
-4. Проверить webhook_entity таблицу:
-```sql
-SELECT * FROM webhook_entity WHERE "webhookPath" LIKE '%\%20%';
-```
-Если есть записи с `%20` - переименовать node.
-
-**Профилактика:**
-- **Имена nodes в n8n НЕ должны содержать пробелы**
-- Это касается всех nodes, которые создают webhook paths
-
-### Проблема: Workflow не активируется
-
-**Проверьте credentials:**
-
-1. Откройте **Credentials** в n8n
-2. Убедитесь, что все три credentials настроены (Telegram Bot API, Header Auth, PostgreSQL)
-3. Проверьте, что токены валидны
-
-**Проверьте Telegram Bot Token:**
-
-```bash
-curl "https://api.telegram.org/bot<YOUR_TOKEN>/getMe"
-```
-
-Ожидаемый ответ:
-
-```json
-{
-  "ok": true,
-  "result": {
-    "id": 1234567890,
-    "is_bot": true,
-    "first_name": "Your Bot Name",
-    "username": "your_bot_username"
-  }
-}
-```
-
-### Проблема: GigaChat API возвращает ошибку
-
-**Проверьте credentials:**
-
-1. Убедитесь, что `client_id` и `client_secret` валидны
-2. Проверьте, что Base64 кодировка правильная
-3. Убедитесь, что scope `GIGACHAT_API_PERS` активен
-
-**Проверьте доступ к API:**
-
-```bash
-# Получение токена
-curl -X POST "https://ngw.devices.sberbank.ru:9443/api/v2/oauth" \
-  -H "Authorization: Basic <your_base64_credentials>" \
-  -H "RqUID: <uuid>" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "scope=GIGACHAT_API_PERS"
-```
-
-### Проблема: n8n не доступен через Traefik (502 Bad Gateway)
-
-**Симптомы:**
-- Health endpoint возвращает 502 Bad Gateway
-- Traefik логи: "unable to reach n8n"
-
-**Причина:**
-- Контейнер n8n не подключён к сети Traefik (`n8n_default`)
-- Traefik не может резолвить hostname
-
-**Решение:**
-```bash
-docker network connect n8n_default telegram-ai-gateway-n8n
-docker network connect n8n_default telegram-ai-gateway-postgres
-```
-
-**Профилактика:**
-Добавить в docker-compose.yml:
-```yaml
-networks:
-  n8n_default:
-    external: true
-
-services:
-  n8n:
-    networks:
-      - telegram-ai-gateway
-      - n8n_default
-  postgres:
-    networks:
-      - telegram-ai-gateway
-      - n8n_default
-```
-
-## 🧾 14. Наблюдения из Deployment Validation
-
-### 1. Имена nodes в n8n (наблюдение)
-
-**Наблюдение:** В Deployment Validation этого проекта на n8n 2.29.8 после импорта workflow через CLI webhook не работал, пока имя Telegram Trigger node содержало пробел ("Telegram Trigger"). После переименования node без пробела ("TelegramTrigger") webhook заработал.
-
-**Статус:** ⚠️ Наблюдение (факт эксперимента, не универсальное правило)
-
-**Гипотеза:** Возможная причина связана с URL-encoding и сопоставлением webhook path при импорте через CLI.
-
-**Локальный обходной путь:**
-- В этом проекте на n8n 2.29.8 рекомендуется использовать имя node без пробела: "TelegramTrigger"
-
-**Проверка:**
-```bash
-docker exec telegram-ai-gateway-postgres psql -U n8n -d n8n -c "SELECT * FROM webhook_entity WHERE \"webhookPath\" LIKE '%\%20%';"
-```
-
-Если есть записи с `%20`, рассмотреть переименование node. Но не считать это критической ошибкой без дополнительной проверки.
-
-**Требуется:** Контролируемый эксперимент для подтверждения универсальности ограничения.
-
-### 2. Docker сеть для Traefik (специфика проекта)
-
-**Наблюдение:** В этом проекте с Traefik reverse proxy контейнеры не работали без подключения к сети `n8n_default`.
-
-**Статус:** ⚠️ Локальное наблюдение (специфика проекта с Traefik)
-
-**Область применимости:** Только проекты с Traefik reverse proxy.
-
-**Решение:**
-```bash
-docker network connect n8n_default telegram-ai-gateway-n8n
-docker network connect n8n_default telegram-ai-gateway-postgres
-```
-
-### 3. Экранирование `$` в Docker Compose
-
-**Наблюдение:** В Deployment Validation этого проекта пароль с символами `$` (`$$$`) не работал.
-
-**Правило:** Значения, содержащие `$` в .env файлах Docker Compose, требуют экранирования: `$$` → `$` в контейнере.
-
-**Область применимости:** Docker Compose, файлы .env, значения с символом `$`.
-
-**Статус:** ✅ Подтверждённое правило (только для `$`)
-
-**Примечание:** НЕ является общим запретом на спецсимволы. Требуется проверка других символов (`\`, `"`, `'`).
-
-**Рекомендация:**
-```env
-# Рекомендуется использовать буквенно-цифровые пароли
-POSTGRES_PASSWORD=PostgresPass123
-N8N_BASIC_AUTH_PASSWORD=N8Nbap3hfpf2100
-
-# Или корректно экранировать $
-POSTGRES_PASSWORD=Pass$$word
-```
-
-**Если пароль уже содержит спецсимволы:**
-```bash
-# Вариант 1: Изменить пароль в БД
-docker exec telegram-ai-gateway-postgres psql -U n8n -d n8n -c "ALTER USER n8n WITH PASSWORD 'PostgresPass123';"
-
-# Вариант 2: Пересоздать volumes (удаляет все данные!)
-docker compose down -v
-docker compose up -d
-```
-
-## ✅ 15. Чеклист развёртывания
+Deployment Validation состоит из двух уровней проверки. Сначала Infrastructure (инфраструктура без внешних зависимостей), затем Integration (полная работоспособность с реальными сервисами). Отчёт о фактическом прогоне — [Deployment Validation Report](deployment_validation_report.md).
 
 ### Infrastructure Validation
+
+**Цель:** Проверить развёртывание инфраструктуры без внешних зависимостей. Не требует реальных Telegram Bot Token и GigaChat credentials (.env настраивается с placeholder-значениями).
 
 - [ ] VPS настроен
 - [ ] Docker и Docker Compose установлены
@@ -1181,7 +611,11 @@ docker compose up -d
 - [ ] Workflows импортированы
 - [ ] Health endpoints отвечают
 
+**Результат:** Infrastructure PASSED
+
 ### Integration Validation
+
+**Цель:** Проверить полную работоспособность системы с реальными внешними сервисами.
 
 **Требует реальные credentials:**
 
@@ -1201,6 +635,14 @@ docker compose up -d
 - [ ] Тестовый URL отправлен боту
 - [ ] Бот вернул корректный ответ
 - [ ] Записи появились в workflow_logs таблице
+
+**Важно (credentials policy):**
+- **Никогда не коммитьте** .env файл
+- **Никогда не публикуйте** credentials в логах, отчётах или документации
+- В отчётах допускается только **факт использования** реальных credentials
+- Конкретные значения секретов остаются только в локальном .env файле
+
+**Результат:** Integration PASSED
 
 ### Production Checklist
 

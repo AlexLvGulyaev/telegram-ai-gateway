@@ -198,7 +198,7 @@ curl -u admin:<N8N_BASIC_AUTH_PASSWORD> http://localhost:5678/api/v1/credentials
 **Решение:**
 1. Проверьте, что PostgreSQL контейнер запущен: `docker compose ps`
 2. Проверьте логи: `docker compose logs postgres`
-3. Убедитесь, что credential использует `telegram-ai-gateway-postgres` как host (уникальное имя контейнера; имя сервиса `postgres` может конфликтовать с другой БД в общей Docker-сети — см. [Deployment Guide, «Docker DNS-коллизия»](deployment_guide.md))
+3. Убедитесь, что credential использует `telegram-ai-gateway-postgres` как host (уникальное имя контейнера; имя сервиса `postgres` может конфликтовать с другой БД в общей Docker-сети — см. [Operations Guide, «Docker DNS-коллизия»](operations.md))
 4. Проверьте пароль: `POSTGRES_PASSWORD` в `.env`
 
 ---
@@ -206,6 +206,7 @@ curl -u admin:<N8N_BASIC_AUTH_PASSWORD> http://localhost:5678/api/v1/credentials
 ## 📚 7. Связанные документы
 
 - [Deployment Guide](deployment_guide.md) — полное руководство по развёртыванию
+- [Operations Guide](operations.md) — эксплуатация и troubleshooting
 - [Architecture](architecture.md) — устройство workflow и журналирования
 
 ---

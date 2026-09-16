@@ -125,7 +125,7 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 - Docker Compose: n8n 2.29.8 + PostgreSQL 15.
 - Переменные окружения (`.env`): `POSTGRES_PASSWORD`, `N8N_BASIC_AUTH_USER/PASSWORD`, `TELEGRAM_BOT_TOKEN`, `GIGACHAT_AUTH_KEY`, `WEBHOOK_URL` (опционально).
 - Три credentials в n8n (Telegram Bot API, GigaChat Header Auth, PostgreSQL) — [credentials-setup.md](credentials-setup.md).
-- Процедура развёртывания и эксплуатации — [deployment_guide.md](deployment_guide.md) (локальный Docker и VPS+HTTPS).
+- Процедура развёртывания — [deployment_guide.md](deployment_guide.md) (локальный Docker и VPS+HTTPS), эксплуатации — [operations.md](operations.md).
 
 ---
 

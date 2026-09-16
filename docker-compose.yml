@@ -37,7 +37,7 @@ services:
       # proxy), в которой alias `postgres` держит другая БД, Docker DNS может
       # резолвить `postgres` на чужой контейнер (симптом: бесконечный recovery-
       # loop «password authentication failed» при верном пароле). Диагностика
-      # и решение — docs/deployment_guide.md, Troubleshooting, «Docker DNS-коллизия».
+      # и решение — docs/operations.md, Troubleshooting, «Docker DNS-коллизия».
       - DB_POSTGRESDB_HOST=telegram-ai-gateway-postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_DATABASE=${POSTGRES_DB:-n8n}

@@ -89,7 +89,8 @@
 | Документ | О чём |
 |----------|-------|
 | [README](../README.md) | Обзор продукта и возможностей |
-| [Deployment Guide](deployment_guide.md) | Развёртывание и эксплуатация (для оператора) |
+| [Deployment Guide](deployment_guide.md) | Развёртывание (VPS + HTTPS / локальный Docker) |
+| [Operations Guide](operations.md) | Эксплуатация: мониторинг, бэкап, обновление, troubleshooting |
 | [Limitations](limitations.md) | Ограничения платформы, известные проблемы и обходные пути |
 
 ---

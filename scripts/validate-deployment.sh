@@ -248,11 +248,10 @@ check_doc() {
 }
 
 check_doc "architecture.md"
-check_doc "setup.md"
 check_doc "deployment_guide.md"
-check_doc "workflow_overview.md"
+check_doc "operations.md"
 check_doc "limitations.md"
-check_doc "known_issues.md"
+check_doc "user_guide.md"
 
 # Check README
 if [ -f README.md ]; then
