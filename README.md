@@ -1,54 +1,108 @@
 # 🌐 Telegram AI Gateway
 
-Production-ready Telegram-бот для переработки статей в структурированные посты с использованием n8n и GigaChat API.
+⚡ **Превратите ссылку на статью в готовый пост для Telegram-канала: бот сам загрузит статью, очистит текст, выделит суть через GigaChat и доставит результат — с журналированием каждого шага.**
 
-Отправьте ссылку на статью — получите готовый пост для Telegram.
+Telegram-бот, который берёт на себя рутину контент-менеджера: принимает ссылку на статью, извлекает и очищает текст, формирует структурированный пост через GigaChat и отправляет его в чат. Больше не нужно вручную вырезать рекламу, сокращать длинные статьи до формата канала и переформатировать текст под Telegram — отправили ссылку, получили пост.
+
+- Отправляете ссылку на статью — бот возвращает готовый структурированный пост: очистка текста, выжимка через GigaChat, форматирование под Telegram; если пост длиннее лимита (4096 символов), он автоматически разбивается на части.
+- Отправляете недоступную ссылку — вместо молчания получаете внятное сообщение на русском: бот различает DNS-ошибки, HTTP-статусы (404, 403, 500) и проблемы SSL, а весь прогон фиксируется в PostgreSQL с уникальным `request_id`.
 
 [![n8n Version](https://img.shields.io/badge/n8n-2.29.8-blue)](https://docs.n8n.io/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
----
-
-## ✨ 1. Возможности
-
-- 📥 Приём URL статьи из Telegram
-- 🧹 Очистка текста от мусора
-- 🤖 Генерация поста через GigaChat API
-- ✂️ Разбиение длинных сообщений
-- 🔧 Обработка ошибок
-- 📊 Логирование выполнения
+[🚀 Развёртывание](docs/deployment_guide.md) · [🏗️ Архитектура](docs/architecture.md) · [📊 Паспорт проекта](docs/PROJECT_STATE.md)
 
 ---
 
-## 🎬 2. Сценарии
+## ▶️ 1. Демо
 
 ### Успешная обработка статьи
 
 ![Telegram — успешная обработка](docs/screenshots/TGW_tg_valid.png)
 
-Пользователь отправляет ссылку на статью — бот возвращает структурированный пост.
-
-### Поток обработки
-
-![Основной workflow](docs/screenshots/TGW_main_workflow.png)
-
-Маршрут обработки запроса: Telegram Trigger → Load Page → Extract Article → Clean Text → GigaChat → Split Message → Send Message.
-
-### Журналирование выполнения
-
-![Log Writer workflow](docs/screenshots/TGW_log_workflow.png)
-
-Система журналирования: Execute Workflow → Log Writer → PostgreSQL. Каждый этап выполнения записывается с request_id для трассировки.
+Пользователь отправляет ссылку на статью — бот возвращает структурированный пост, готовый к публикации в канале.
 
 ### Обработка ошибок
 
 ![Telegram — обработка ошибок](docs/screenshots/TGW_tg_errors.png)
 
-Пользовательские сообщения на русском языке при ошибках загрузки, авторизации и API. Система различает DNS-ошибки, HTTP-статусы (404, 403, 500), SSL-проблемы и ошибки AI-сервиса.
+Пользовательские сообщения на русском языке: система различает DNS-ошибки, HTTP-статусы (404, 403, 500), SSL-проблемы и ошибки AI-сервиса — читатель всегда понимает, что произошло и что делать дальше.
 
 ---
 
-## 🚀 3. Быстрый старт
+## ❓ 2. Зачем нужен
+
+Ручная переработка статьи в пост для Telegram — это рутина, которую контент-менеджеры и редакторы повторяют ежедневно:
+
+- прочитать длинную статью и вырезать из неё рекламу, навигацию и мусор;
+- выделить главное и сократить до формата канала;
+- отформатировать текст под Telegram, следя за лимитом в 4096 символов.
+
+На одну статью уходят десятки минут однообразной работы, а качество зависит от загрузки и настроения исполнителя.
+
+**Telegram AI Gateway решает эту проблему:** отправка ссылки превращается в готовый пост за один шаг, каждый прогон журналируется в PostgreSQL, а ошибки обрабатываются понятными сообщениями — процесс становится повторяемым и измеримым.
+
+---
+
+## 🎯 3. Для кого
+
+- Контент-менеджеры и редакторы Telegram-каналов, перерабатывающие внешние статьи в посты.
+- Авторы, ведущие несколько каналов и экономящие время на рутинной подготовке текста.
+- Команды, которым важна измеримость: журнал исполнения каждого прогона с `request_id`.
+- Инженеры, которым нужен готовый образец production-grade n8n-автоматизации с обработкой ошибок, retry и логированием.
+
+---
+
+## ✨ 4. Возможности
+
+- **Ссылка → пост в одном сообщении** — загрузка страницы, очистка текста, генерация через GigaChat и доставка в Telegram: один pipeline от триггера до ответа.
+- **Понятные сообщения об ошибках** — бот различает DNS-ошибки, HTTP-статусы (404, 403, 500), SSL-проблемы и ошибки AI-сервиса; тексты сообщений на русском и настраиваются параметрами.
+- **Retry-механизмы** — 3 попытки загрузки страницы, 2 попытки получения токена, 2 попытки вызова GigaChat API — временные сбои сети не ломают прогон.
+- **Журналирование в PostgreSQL** — отдельный Log Writer workflow записывает каждый этап с `request_id`: любой прогон можно разобрать по шагам.
+- **Разбиение длинных постов** — сообщение длиннее 4096 символов автоматически делится на части.
+- **27 параметров конфигурации** — модель, промпт, лимиты текста, таймауты, retry-интервалы, CSS-селекторы извлечения: вся настройка через Configuration node, без правки кода.
+- **Провайдер-независимость** — параметр `AI_PROVIDER` (сейчас GigaChat) и `CONTENT_SOURCE` (сейчас URL): замена LLM-провайдера или источника контента без перестройки workflow.
+
+---
+
+## 🏗️ 5. Краткий обзор архитектуры
+
+```mermaid
+flowchart LR
+    A[Telegram User] -->|URL статьи| B[n8n Workflow]
+    B -->|Load & Extract| C[GigaChat API]
+    C -->|Generated Post| B
+    B -->|Result| A
+    B -->|Logs| D[(PostgreSQL)]
+```
+
+Пользователь отправляет URL в Telegram → workflow загружает статью → очищает текст → генерирует пост через GigaChat → возвращает результат; параллельно каждый этап записывается в PostgreSQL через отдельный Log Writer workflow.
+
+Реализация в n8n — основной workflow (39 нод) с детальной обработкой ошибок:
+
+![Основной workflow](docs/screenshots/TGW_main_workflow.png)
+
+Журналирование — Log Writer workflow (4 ноды) пишет в таблицу `workflow_logs`:
+
+![Log Writer workflow](docs/screenshots/TGW_log_workflow.png)
+
+**Подробнее:** [Architecture](docs/architecture.md) · [Workflow Overview](docs/workflow_overview.md)
+
+---
+
+## 🛠️ 6. Технологический стек
+
+| Компонент | Технология |
+|-----------|------------|
+| Workflow-движок | [n8n](https://docs.n8n.io/) 2.29.8 |
+| AI-модель | [GigaChat API](https://giga.chat/) (OAuth + Chat Completions) |
+| База данных | PostgreSQL 15 (credentials, execution history, логи `workflow_logs`) |
+| Интерфейс | Telegram Bot API |
+| Развёртывание | Docker Compose (n8n + PostgreSQL) |
+
+---
+
+## 🚀 7. Быстрый старт
 
 ### Требования
 
@@ -83,76 +137,96 @@ docker-compose up -d
    - Telegram Bot API
    - GigaChat Basic Auth
    - PostgreSQL (для Log Writer)
-3. Активируйте workflow
+3. Примените миграции и активируйте workflow
 
-**Подробное руководство:** [Deployment Guide](docs/deployment_guide.md)
+**Подробное руководство:** [Deployment Guide](docs/deployment_guide.md) — развёртывание на VPS с HTTPS и локальный Docker-режим.
 
 ---
 
-## 🏗️ 4. Архитектура
+## 📚 8. Документация
 
-```mermaid
-flowchart LR
-    A[Telegram User] -->|URL статьи| B[n8n Workflow]
-    B -->|Load & Extract| C[GigaChat API]
-    C -->|Generated Post| B
-    B -->|Result| A
-    B -->|Logs| D[(PostgreSQL)]
+Документация разделена по аудиториям — каждому читателю свой вход.
+
+### Для заказчиков и менеджеров
+
+| Документ | О чём |
+|----------|-------|
+| [SPEC](docs/SPEC.md) | Какими возможностями обладает продукт, для кого, метрики качества |
+
+### Для пользователей и операторов
+
+| Документ | О чём |
+|----------|-------|
+| [Deployment Guide](docs/deployment_guide.md) | Развёртывание (VPS + HTTPS / локальный Docker), эксплуатация, troubleshooting, бэкап, обновление |
+| [Credentials Setup](docs/credentials-setup.md) | Настройка credentials: Telegram, GigaChat, PostgreSQL |
+| [Known Issues](docs/known_issues.md) | Известные проблемы и обходные пути |
+| [Limitations](docs/limitations.md) | Ограничения платформы и рекомендации по обходу |
+
+### Для инженеров и интеграторов
+
+| Документ | О чём |
+|----------|-------|
+| [Architecture](docs/architecture.md) | C4-диаграммы, потоки данных, обработка ошибок, безопасность |
+| [Workflow Overview](docs/workflow_overview.md) | Workflow изнутри: ноды, версии, переменные окружения |
+| [Architecture Decisions](docs/architecture-decisions.md) | Принятые архитектурные решения и обоснования |
+| [Logging Integration Guide](docs/logging-integration-guide.md) | Как устроено журналирование исполнения |
+| [Negative Tests](docs/negative_tests.md) | Протестированные негативные сценарии |
+| [PROJECT_STATE](docs/PROJECT_STATE.md) | Паспорт состояния проекта |
+| [Engineering Investigation](docs/engineering-investigation-n8n-update.md) | Историческое исследование: выбор версии n8n |
+| [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) | Архивный план реализации (реализован 2026-07-08…07-10) |
+| [CHANGE_LOG](docs/CHANGE_LOG.md) | История изменений документации |
+
+---
+
+## 📁 9. Структура проекта
+
+```
+telegram-ai-gateway/
+├── workflows/              # Main workflow (39 нод) и Log Writer (4 ноды) для импорта в n8n
+├── migrations/             # SQL-миграции: таблица workflow_logs
+├── scripts/                # Служебные скрипты (validate-deployment.sh)
+├── docs/                   # Документация по трём аудиториям + скриншоты
+├── docker-compose.yml      # n8n + PostgreSQL
+├── docker-compose.test.yml # Тестовая конфигурация
+└── .env.example            # Шаблон переменных окружения
 ```
 
-Пользователь отправляет URL в Telegram → workflow загружает статью → очищает текст → генерирует пост через GigaChat → возвращает результат.
-
-**Подробнее:** [Architecture](docs/architecture.md)
-
 ---
 
-## 📚 5. Документация
+## ✅ 10. Статус проекта
 
-Маршрут: «какой документ для какого вопроса».
-
-| Вопрос | Документ |
-|--------|----------|
-| Как развернуть и эксплуатировать (VPS + HTTPS / локальный Docker, troubleshooting, бэкап, обновление) | [Deployment Guide](docs/deployment_guide.md) |
-| Как настроить credentials | [Credentials Setup](docs/credentials-setup.md) |
-| Как устроена система (C4-диаграммы, потоки данных, обработка ошибок, безопасность) | [Architecture](docs/architecture.md) |
-| Как работает workflow изнутри (ноды, версии workflow, переменные окружения) | [Workflow Overview](docs/workflow_overview.md) |
-| Как устроено журналирование исполнения | [Logging Integration Guide](docs/logging-integration-guide.md) |
-| Какими возможностями обладает продукт и для кого | [SPEC](docs/SPEC.md) |
-| В каком состоянии находится проект | [PROJECT_STATE](docs/PROJECT_STATE.md) |
-| Какие архитектурные решения приняты и почему | [Architecture Decisions](docs/architecture-decisions.md) |
-| Какие известны проблемы и как их обходить | [Known Issues](docs/known_issues.md) |
-| Какие есть ограничения платформы | [Limitations](docs/limitations.md) |
-| Какие негативные сценарии протестированы | [Negative Tests](docs/negative_tests.md) |
-| Как выбиралась версия n8n (историческое исследование) | [Engineering Investigation](docs/engineering-investigation-n8n-update.md) |
-| Как планировалась реализация (архивный план) | [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) |
-| Что менялось в документации | [CHANGE_LOG](docs/CHANGE_LOG.md) |
-
----
-
-## ✅ 6. Статус
+**Production Ready (GitHub Edition)** — Deployment Validation пройдена в чистом окружении: проект воспроизводится с нуля по [Deployment Guide](docs/deployment_guide.md), без знаний автора за пределами публичной документации.
 
 **Что реализовано:**
-- ✅ Обработка ошибок
-- ✅ Retry механизмы
-- ✅ Логирование в PostgreSQL
+
+- ✅ Полный pipeline URL → структурированный пост
+- ✅ Обработка ошибок с user-friendly сообщениями на русском
+- ✅ Retry-механизмы (загрузка страницы, токен, GigaChat API)
+- ✅ Журналирование каждого прогона в PostgreSQL
 - ✅ Разбиение длинных сообщений
 
-**Релиз:** GitHub Edition — Production Ready (Deployment Validation пройдена)
+---
+
+## ⚠️ 11. Ограничения
+
+- **Время выполнения растёт с объёмом статьи** — для длинных текстов есть оперативный обход (уменьшение лимитов текста/промпта); см. [Limitations](docs/limitations.md).
+- **Внешние зависимости** — доступность исходного сайта, GigaChat API и Telegram API влияет на обработку; retry смягчает временные сбои, но не гарантирует результат.
+- **Качество генерации зависит от модели** — пост формируется GigaChat; промпт настраивается параметрами, но результат стоит проверять перед публикацией.
+
+Полный перечень ограничений и известных проблем: [Limitations](docs/limitations.md) · [Known Issues](docs/known_issues.md).
 
 ---
 
-## 📄 7. Лицензия
+## 📄 12. Лицензия
 
-MIT License. См. [LICENSE](LICENSE).
+MIT — см. [LICENSE](LICENSE).
 
----
-
-## 👥 8. Автор
-
-AI Automation Portfolio Lab
+> ℹ️ Бот разработан с использованием инженерных практик AI Automation
+> Portfolio Lab как среды разработки. Публичная документация полностью
+> самодостаточна и не ссылается на внутренние артефакты лаборатории.
 
 ---
 
-**Статус:** Production Ready
+**Статус:** Production Ready — Deployment Validation пройдена
 **Последнее обновление:** 2026-09-16
 **История изменений:** [📝 CHANGE_LOG.md](docs/CHANGE_LOG.md#-1-история-изменений-документации)
