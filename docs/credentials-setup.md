@@ -1,10 +1,10 @@
-# Credentials Setup Guide
+# 🔑 Telegram AI Gateway · Credentials Setup
 
 Подробное руководство по настройке credentials для Telegram AI Gateway.
 
 ---
 
-## Обзор
+## 🎯 1. Обзор
 
 Workflow требует три credentials для работы:
 
@@ -16,7 +16,7 @@ Workflow требует три credentials для работы:
 
 ---
 
-## 1. Telegram Bot API Credential
+## 🔑 2. Telegram Bot API Credential
 
 ### 1.1. Получение Bot Token
 
@@ -62,7 +62,7 @@ curl "https://api.telegram.org/bot<YOUR_TOKEN>/getMe"
 
 ---
 
-## 2. GigaChat Basic Auth Credential
+## 🔑 3. GigaChat Basic Auth Credential
 
 ### 2.1. Получение Credentials
 
@@ -113,7 +113,7 @@ curl -X POST "https://ngw.devices.sberbank.ru:9443/api/v2/oauth" \
 
 ---
 
-## 3. PostgreSQL Credential
+## 🔑 4. PostgreSQL Credential
 
 ### 3.1. Создание Credential в n8n
 
@@ -142,7 +142,7 @@ docker exec telegram-ai-gateway-postgres psql -U n8n -d n8n -c "\d workflow_logs
 
 ---
 
-## 4. Верификация Credentials
+## ✅ 5. Верификация Credentials
 
 ### 4.1. Проверка списка credentials
 
@@ -162,7 +162,7 @@ curl -u admin:<N8N_BASIC_AUTH_PASSWORD> http://localhost:5678/api/v1/credentials
 
 ---
 
-## 5. Troubleshooting
+## 🚨 6. Troubleshooting
 
 ### 5.1. Ошибка: "Credential not found"
 
@@ -203,8 +203,14 @@ curl -u admin:<N8N_BASIC_AUTH_PASSWORD> http://localhost:5678/api/v1/credentials
 
 ---
 
-## 6. Связанные документы
+## 📚 7. Связанные документы
 
 - [Deployment Guide](deployment_guide.md) — полное руководство по развёртыванию
 - [Setup Guide](setup.md) — инструкции по установке
 - [Workflow Overview](workflow_overview.md) — обзор workflow
+
+---
+
+**Статус:** Актуален
+**Последнее обновление:** 2026-09-16
+**История изменений:** [📝 CHANGE_LOG.md](CHANGE_LOG.md#-1-история-изменений-документации)

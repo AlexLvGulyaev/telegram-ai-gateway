@@ -1,10 +1,10 @@
-# Logging Integration Guide
+# 🧾 Logging Integration Guide · Telegram AI Gateway
 
-## Обзор
+## 🎯 1. Обзор
 
 Данный документ описывает интеграцию Execution Logging в основной workflow "Telegram AI Gateway".
 
-## Архитектура
+## 🏗️ 2. Архитектура
 
 ```
 Основной workflow (Telegram AI Gateway)
@@ -16,7 +16,7 @@ Telegram AI Gateway - Log Writer
 PostgreSQL (workflow_logs table)
 ```
 
-## Log Writer Workflow
+## 📝 3. Log Writer Workflow
 
 **Расположение:** `workflows/Telegram AI Gateway - Log Writer.json`
 
@@ -46,7 +46,7 @@ PostgreSQL (workflow_logs table)
 
 **Важно:** `created_at` — обязательное поле, генерируется в Generate Request ID node и прокидывается через весь workflow. Это обеспечивает хронологический порядок логов в рамках одного запроса.
 
-## Точки логирования в основном workflow
+## 📍 4. Точки логирования в основном workflow
 
 ### 1. REQUEST_RECEIVED
 
@@ -353,7 +353,7 @@ PostgreSQL (workflow_logs table)
 }
 ```
 
-## Дополнительные точки логирования (опционально)
+## 📍 5. Дополнительные точки логирования (опционально)
 
 ### PAGE_LOAD_STARTED
 
@@ -527,7 +527,7 @@ PostgreSQL (workflow_logs table)
 }
 ```
 
-## Инструкция по внедрению
+## 🛠️ 6. Инструкция по внедрению
 
 ### Шаг 1: Импортировать Log Writer workflow
 
@@ -565,7 +565,7 @@ PostgreSQL (workflow_logs table)
    ```
 4. Убедиться, что все события записаны в правильном порядке
 
-## Минимальный набор точек логирования
+## ✅ 7. Минимальный набор точек логирования
 
 Если внедрение всех точек затруднительно, начать с минимального набора:
 
@@ -579,7 +579,7 @@ PostgreSQL (workflow_logs table)
 5. TOKEN_RECEIVED / TOKEN_FAILED
 6. LLM_COMPLETED / LLM_FAILED
 
-## Критерий успешности
+## 🏁 8. Критерий успешности
 
 После внедрения логирования:
 
@@ -589,7 +589,7 @@ PostgreSQL (workflow_logs table)
 4. Успешные выполнения содержат `status: SUCCESS`
 5. Неудачные выполнения содержат `status: FAILED`
 
-## Примечания
+## 📝 9. Примечания
 
 - Execute Workflow nodes выполняются асинхронно и не блокируют основной workflow
 - Ошибки в Execute Workflow nodes не должны останавливать основной workflow (использовать Continue On Fail)
@@ -598,5 +598,6 @@ PostgreSQL (workflow_logs table)
 
 ---
 
-**Версия:** 1.0
-**Дата:** 2026-07-09
+**Статус:** Реализовано (Log Writer развёрнут)
+**Последнее обновление:** 2026-09-16
+**История изменений:** [📝 CHANGE_LOG.md](CHANGE_LOG.md#-1-история-изменений-документации)

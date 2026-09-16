@@ -1,8 +1,8 @@
-# Setup Guide
+# 🛠️ Telegram AI Gateway · Setup Guide
 
 Пошаговая инструкция по установке Telegram AI Gateway.
 
-## Системные требования
+## 📋 1. Системные требования
 
 ### Минимальные требования
 
@@ -147,7 +147,7 @@ curl http://localhost:5678/healthz
    - Username: значение `N8N_BASIC_AUTH_USER`
    - Password: значение `N8N_BASIC_AUTH_PASSWORD`
 
-## Настройка workflow
+## 🗺️ 2. Настройка workflow
 
 ### 1. Импорт workflow
 
@@ -184,7 +184,7 @@ docker exec -i telegram-ai-gateway-postgres psql -U n8n -d n8n < migrations/002_
 2. Нажмите переключатель **Active** в правом верхнем углу
 3. Workflow начнёт слушать входящие сообщения от Telegram
 
-## Получение credentials
+## 🔑 3. Получение credentials
 
 ### Telegram Bot Token
 
@@ -218,7 +218,7 @@ docker exec -i telegram-ai-gateway-postgres psql -U n8n -d n8n < migrations/002_
    GIGACHAT_AUTH_KEY=<base64_encoded_credentials>
    ```
 
-## Проверка работы
+## ✅ 4. Проверка работы
 
 ### 1. Отправьте тестовое сообщение
 
@@ -258,7 +258,7 @@ invalid-url
 Пожалуйста, отправьте корректную ссылку на статью, начинающуюся с http:// или https://
 ```
 
-## Устранение неполадок
+## 🚨 5. Устранение неполадок
 
 ### n8n не запускается
 
@@ -321,7 +321,7 @@ curl -X POST "https://ngw.devices.sberbank.ru:9443/api/v2/oauth" \
   -d "scope=GIGACHAT_API_PERS"
 ```
 
-## Остановка и перезапуск
+## ⏹️ 6. Остановка и перезапуск
 
 ### Остановка
 
@@ -343,7 +343,7 @@ docker compose restart
 docker compose restart n8n
 ```
 
-## Обновление
+## 🔄 7. Обновление
 
 ```bash
 # Остановить контейнеры
@@ -356,10 +356,16 @@ git pull
 docker compose up -d --build
 ```
 
-## Следующие шаги
+## 🚀 8. Следующие шаги
 
 После успешной установки:
 
 1. Прочитайте [Workflow Overview](workflow_overview.md)
 2. Изучите [Deployment Guide](deployment_guide.md)
 3. Ознакомьтесь с [Limitations](limitations.md)
+
+---
+
+**Статус:** Актуален
+**Последнее обновление:** 2026-09-16
+**История изменений:** [📝 CHANGE_LOG.md](CHANGE_LOG.md#-1-история-изменений-документации)

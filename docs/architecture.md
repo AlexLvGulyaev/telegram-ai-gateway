@@ -1,14 +1,51 @@
-# Architecture
+# 🏗️ Telegram AI Gateway · ARCHITECTURE
 
 Документ описывает архитектуру проекта Telegram AI Gateway.
 
-## Высокоуровневая архитектура
+## 🌐 1. Context Diagram (C4 Level 1)
 
 ```mermaid
 flowchart TB
-    User[Telegram User] -->|URL статьи| BotAPI[Telegram Bot API<br/>api.telegram.org:443]
-    BotAPI -->|Webhook/Polling| N8N[n8n Workflow<br/>Docker Container]
+    User[Telegram User<br/>читатель статьи]
 
+    subgraph System[Telegram AI Gateway]
+        Gateway[n8n-автоматизация:<br/>статья → суммаризация → готовый пост]
+    end
+
+    User -->|URL статьи| BotAPI[Telegram Bot API<br/>api.telegram.org:443]
+    BotAPI -->|Webhook / Polling| Gateway
+    Gateway -->|Результат / User-friendly сообщение об ошибке| BotAPI
+    BotAPI -->|Результат / ошибка| User
+
+    Gateway -->|HTTP Request<br/>OAuth + Chat Completions| GigaChatAPI[GigaChat API]
+    Gateway -->|HTTP Request<br/>загрузка статьи| ArticleSources[Article Sources<br/>внешние домены]
+```
+
+## 📦 2. Container Diagram (C4 Level 2)
+
+```mermaid
+flowchart TB
+    subgraph DockerCompose[Docker Compose · Telegram AI Gateway]
+        N8N[n8n Workflow Engine<br/>n8nio/n8n:2.29.8]
+        PG[PostgreSQL 15<br/>postgres:15-alpine<br/>credentials · execution history · workflow_logs]
+        LogWriter[Log Writer Workflow<br/>4 nodes · reusable]
+    end
+
+    User[Telegram User] -->|URL статьи| BotAPI[Telegram Bot API<br/>api.telegram.org:443]
+    BotAPI -->|Webhook / Polling| N8N
+    N8N -->|Send Message / Send Error| User
+
+    N8N -->|Execute Workflow| LogWriter
+    LogWriter -->|INSERT| PG
+
+    N8N -->|HTTP Request| GigaChatAPI[GigaChat API<br/>OAuth + Chat Completions]
+    N8N -->|HTTP Request| ArticleSources[Article Sources<br/>Various domains]
+```
+
+### Внутренняя структура основного workflow
+
+```mermaid
+flowchart TB
     subgraph Workflow[Workflow Pipeline]
         Trigger[Telegram Trigger] --> Prepare[Prepare Input]
         Prepare --> CheckURL{Check URL}
@@ -27,24 +64,7 @@ flowchart TB
         GigaChat -->|success| Split[Split Message]
         Split --> Send[Send Message]
     end
-
-    N8N --> Workflow
-
-    N8N -->|Execute Workflow| LogWriter[Log Writer Workflow]
-    LogWriter -->|INSERT| PG[PostgreSQL 15<br/>workflow_logs]
-
-    N8N -->|HTTP Request| GigaChatAPI[GigaChat API<br/>OAuth + Chat Completions]
-    N8N -->|HTTP Request| ArticleSources[Article Sources<br/>Various domains]
-
-    Send -->|Result| User
-    ErrorURL -->|Error Message| User
-    ErrorLoad -->|Error Message| User
-    ErrorExtract -->|Error Message| User
-    ErrorAuth -->|Error Message| User
-    ErrorAPI -->|Error Message| User
 ```
-
-## Компоненты системы
 
 ### Docker Services
 
@@ -136,7 +156,7 @@ sequenceDiagram
 - Chat endpoint: `gigachat.devices.sberbank.ru/api/v1/chat/completions`
 - Аутентификация: Basic Auth → Bearer Token
 
-## Потоки данных
+## 🔄 3. Потоки данных
 
 ### Успешный сценарий
 
@@ -164,7 +184,7 @@ flowchart LR
     E -->|User-friendly Error| A
 ```
 
-## Обработка ошибок
+## 🚨 4. Обработка ошибок
 
 ### Уровни обработки
 
@@ -219,7 +239,7 @@ flowchart TB
     SendAPI --> User
 ```
 
-## Безопасность
+## 🔐 5. Безопасность
 
 ### Секреты
 
@@ -245,7 +265,7 @@ flowchart TB
 - Reverse proxy (Nginx/Caddy) для HTTPS
 - Firewall rules для ограничения доступа
 
-## Масштабируемость
+## 📈 6. Масштабируемость
 
 ### Текущие ограничения
 
@@ -260,7 +280,7 @@ flowchart TB
 - Queue system для высокой нагрузки
 - Multiple n8n instances за load balancer
 
-## Мониторинг
+## 📊 7. Мониторинг
 
 ### Текущий мониторинг
 
@@ -275,7 +295,7 @@ flowchart TB
 - Alerting на ошибки
 - Health checks
 
-## Резервное копирование
+## 💾 8. Резервное копирование
 
 ### Что бэкапить
 
@@ -292,3 +312,9 @@ docker exec postgres pg_dump -U n8n n8n > backup_$(date +%Y%m%d).sql
 # Бэкап n8n data
 docker run --rm -v n8n_data:/data -v $(pwd):/backup alpine tar czf /backup/n8n_backup.tar.gz -C /data .
 ```
+
+---
+
+**Статус:** Актуальна (as-built)
+**Последнее обновление:** 2026-09-16
+**История изменений:** [📝 CHANGE_LOG.md](CHANGE_LOG.md#-1-история-изменений-документации)

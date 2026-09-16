@@ -1,12 +1,8 @@
-# IMPLEMENTATION PLAN: Telegram AI Gateway
-
-**Версия:** 1.0
-**Дата:** 2026-07-10
-**Статус:** Implemented
+# 📋 Telegram AI Gateway · IMPLEMENTATION_PLAN
 
 ---
 
-## Цель документа
+## 🎯 1. Цель документа
 
 IMPLEMENTATION_PLAN определяет, как именно будет реализован проект. Если SPEC отвечает на вопрос "что должно быть реализовано", то IMPLEMENTATION_PLAN отвечает на вопрос "как именно это будет реализовано".
 
@@ -14,7 +10,7 @@ IMPLEMENTATION_PLAN определяет, как именно будет реа�
 
 ---
 
-## Целевая структура каталогов проекта
+## 🧩 2. Целевая структура каталогов проекта
 
 ```
 telegram-ai-gateway/
@@ -45,10 +41,10 @@ telegram-ai-gateway/
 │   ├── known_issues.md            # Известные проблемы
 │   ├── engineering-investigation-n8n-update.md # Исследование n8n версий
 │   └── screenshots/                # Скриншоты workflow и работы бота
-│       ├── PEn04_main_workflow.png
-│       ├── PEn04_log_workflow.png
-│       ├── PEn04_TG_valid.png
-│       └── PEn04_TG_errors.png
+│       ├── TGW_main_workflow.png
+│       ├── TGW_log_workflow.png
+│       ├── TGW_tg_valid.png
+│       └── TGW_tg_errors.png
 │
 ├── migrations/
 │   ├── 001_create_workflow_logs.sql      # Создание таблицы логов
@@ -60,7 +56,7 @@ telegram-ai-gateway/
 
 ---
 
-## Состав репозитория
+## 🗂️ 3. Состав репозитория
 
 ### Обязательные файлы
 
@@ -115,10 +111,10 @@ telegram-ai-gateway/
 
 | Файл | Назначение | Формат |
 |------|-----------|--------|
-| docs/screenshots/PEn04_main_workflow.png | Общий вид основного workflow | PNG |
-| docs/screenshots/PEn04_log_workflow.png | Общий вид Log Writer workflow | PNG |
-| docs/screenshots/PEn04_TG_valid.png | Пример работы бота с валидным URL | PNG |
-| docs/screenshots/PEn04_TG_errors.png | Пример работы бота с ошибками | PNG |
+| docs/screenshots/TGW_main_workflow.png | Общий вид основного workflow | PNG |
+| docs/screenshots/TGW_log_workflow.png | Общий вид Log Writer workflow | PNG |
+| docs/screenshots/TGW_tg_valid.png | Пример работы бота с валидным URL | PNG |
+| docs/screenshots/TGW_tg_errors.png | Пример работы бота с ошибками | PNG |
 
 ### Исключённые файлы
 
@@ -131,7 +127,7 @@ telegram-ai-gateway/
 
 ---
 
-## Состав Docker Compose
+## 🐳 4. Состав Docker Compose
 
 ### docker-compose.yml
 
@@ -228,7 +224,7 @@ networks:
 
 ---
 
-## Модель конфигурации (.env.example)
+## 🧮 5. Модель конфигурации (.env.example)
 
 ### .env.example
 
@@ -313,7 +309,7 @@ LOG_LEVEL=info
 
 ---
 
-## Структура n8n Workflow
+## 🗺️ 6. Структура n8n Workflow
 
 ### Обзор workflow
 
@@ -604,7 +600,7 @@ LOG_LEVEL=info
 
 ---
 
-## Состав и назначение workflow
+## ⚙️ 7. Состав и назначение workflow
 
 ### Основной workflow
 
@@ -625,7 +621,7 @@ LOG_LEVEL=info
 
 ---
 
-## Последовательность реализации
+## 📅 8. Последовательность реализации
 
 ### Этап 1: Инфраструктура
 
@@ -743,14 +739,14 @@ LOG_LEVEL=info
 
 ---
 
-## Порядок восстановления исходного workflow
+## ♻️ 9. Порядок восстановления исходного workflow
 
 ### Источники для восстановления
 
 | Источник | Содержимое | Использование |
 |---------|-----------|--------------|
 | docs/SPEC.md | Требования к workflow | Основной источник |
-| PEn04_task_SOT.md | Подробное описание нод | Детали реализации |
+| task-SOT урока (архив) | Подробное описание нод | Детали реализации |
 | Скриншоты workflow | Визуальное представление | Верификация |
 
 ### Шаги восстановления
@@ -782,7 +778,7 @@ LOG_LEVEL=info
 
 ---
 
-## Порядок внедрения улучшений
+## ⬆️ 10. Порядок внедрения улучшений
 
 ### Приоритет 1: Обязательные улучшения
 
@@ -817,7 +813,7 @@ LOG_LEVEL=info
 **Время:** 1 час
 
 **2.2. Логирование**
-- Добавить логирование в ключевых нодах
+- Добавить логирование в главных нодах
 - Настроить уровень логирования через .env
 
 **Время:** 1-2 часа
@@ -832,7 +828,7 @@ LOG_LEVEL=info
 
 ---
 
-## Стратегия обработки ошибок
+## 🚨 11. Стратегия обработки ошибок
 
 ### Общие принципы
 
@@ -920,7 +916,7 @@ LOG_LEVEL=info
 
 ---
 
-## Стратегия retry
+## 🔁 12. Стратегия retry
 
 ### Retry параметры по нодам
 
@@ -956,7 +952,7 @@ LOG_LEVEL=info
 
 ---
 
-## Стратегия логирования
+## 📝 13. Стратегия логирования
 
 ### Log Levels
 
@@ -992,12 +988,12 @@ LOG_LEVEL=info
 
 **В каждой ноде:**
 - Добавить Console.log в Code нодах
-- Добавить Set ноду для логирования после ключевых операций
+- Добавить Set ноду для логирования после главных операций
 - Использовать n8n execution history для отладки
 
 ---
 
-## Стратегия хранения секретов
+## 🔐 14. Стратегия хранения секретов
 
 ### Переменные окружения
 
@@ -1031,7 +1027,7 @@ LOG_LEVEL=info
 
 ---
 
-## Стратегия тестирования
+## 🧪 15. Стратегия тестирования
 
 ### Уровни тестирования
 
@@ -1077,7 +1073,7 @@ LOG_LEVEL=info
 
 ---
 
-## Стратегия Deployment Validation
+## 🚀 16. Стратегия Deployment Validation
 
 ### Deployment Validation Checklist
 
@@ -1128,7 +1124,7 @@ LOG_LEVEL=info
 
 ---
 
-## Состав публичной документации GitHub
+## 📦 17. Состав публичной документации GitHub
 
 ### README.md
 
@@ -1204,7 +1200,7 @@ LOG_LEVEL=info
 
 ---
 
-## Критерии завершения каждого этапа реализации
+## 🏁 18. Критерии завершения каждого этапа реализации
 
 ### Этап 1: Инфраструктура
 
@@ -1328,7 +1324,7 @@ curl http://localhost:5678/health
 
 ---
 
-## Logging Layer
+## 📝 19. Logging Layer
 
 ### Назначение
 
@@ -1430,7 +1426,7 @@ PostgreSQL (workflow_logs table)
 - TELEGRAM_SEND_STARTED
 
 **Интеграция:**
-- Добавить Execute Workflow nodes в ключевых точках
+- Добавить Execute Workflow nodes в главных точках
 - Передавать параметры через Expressions
 - Использовать Continue On Fail для неблокирующего логирования
 
@@ -1495,13 +1491,6 @@ WHERE stage = 'WORKFLOW_FINISHED'
 
 ---
 
-## Версионирование IMPLEMENTATION_PLAN
-
-| Версия | Дата | Изменения |
-|--------|------|-----------|
-| 1.0 | 2026-07-08 | Начальная версия |
-| 1.1 | 2026-07-09 | Добавлен раздел Logging Layer |
-
----
-
-**Конец IMPLEMENTATION_PLAN.md**
+**Статус:** Implemented
+**Последнее обновление:** 2026-09-16
+**История изменений:** [📝 CHANGE_LOG.md](CHANGE_LOG.md#-1-история-изменений-документации)

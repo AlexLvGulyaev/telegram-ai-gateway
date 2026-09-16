@@ -1,24 +1,18 @@
-# Workflow Overview
+# 🗺️ Telegram AI Gateway · Workflow Overview
 
 Обзор workflow Telegram AI Gateway и связанных workflow.
 
-## Версия
+## ℹ️ 1. Версия
 
 **Workflow JSON:** `workflows/Telegram AI Gateway.json`
 
-**Статус:** ✅ Полностью функционален, протестирован вручную (E2E)
-
-**Последнее обновление:** 2026-07-10
-
 ---
 
-## Связанные workflows
+## 🗂️ 2. Связанные workflows
 
 ### Telegram AI Gateway - Log Writer
 
 **Файл:** `workflows/Telegram AI Gateway - Log Writer.json`
-
-**Статус:** ✅ Создан (Phase 3 — Execution Logging)
 
 **Назначение:** Отдельный reusable workflow для записи событий журналирования в PostgreSQL.
 
@@ -52,7 +46,7 @@
 
 ---
 
-## Диаграмма workflow
+## 🔀 3. Диаграмма workflow
 
 ```mermaid
 flowchart TB
@@ -89,7 +83,7 @@ flowchart TB
 
 ---
 
-## Описание нод
+## ⚙️ 4. Описание нод
 
 ### Основные ноды
 
@@ -566,7 +560,7 @@ console.log('[GigaChat Error] Status:', statusCode, 'Message:', error?.message);
 
 ---
 
-## Обработка ошибок
+## 🚨 5. Обработка ошибок
 
 ### Retry политики
 
@@ -637,7 +631,7 @@ flowchart TB
 
 ---
 
-## Логирование
+## 📝 6. Логирование
 
 Система логирования реализована через отдельный Log Writer workflow с записью в PostgreSQL.
 
@@ -669,7 +663,7 @@ console.log('[Node Name] Key data:', value);
 
 ---
 
-## Ограничения
+## ⚠️ 7. Ограничения
 
 ### Telegram API
 
@@ -689,7 +683,7 @@ console.log('[Node Name] Key data:', value);
 
 ---
 
-## Переменные окружения
+## 🧮 8. Переменные окружения
 
 Workflow использует следующие переменные из `.env`:
 
@@ -704,7 +698,7 @@ Workflow использует следующие переменные из `.env
 
 ---
 
-## Credentials
+## 🔑 9. Credentials
 
 Workflow требует следующие credentials:
 
@@ -713,7 +707,7 @@ Workflow требует следующие credentials:
 
 ---
 
-## Мониторинг
+## 📊 10. Мониторинг
 
 ### n8n Execution History
 
@@ -733,7 +727,7 @@ Workflow требует следующие credentials:
 
 ---
 
-## Рекомендации
+## 💡 11. Рекомендации
 
 ### Оптимизация
 
@@ -759,9 +753,6 @@ Workflow требует следующие credentials:
 
 ---
 
-## Изменения
-
-| Дата | Версия | Изменения |
-|------|--------|-----------|
-| 2026-07-08 | 2.0 | Добавлена полноценная обработка ошибок: Check Load Error, Check Token, Check Response; Format Error ноды; Retry; Logging; n8n attribution removed |
-| 2026-07-08 | 1.0 | Начальная версия workflow |
+**Статус:** Полностью функционален, протестирован вручную (E2E)
+**Последнее обновление:** 2026-09-16
+**История изменений:** [📝 CHANGE_LOG.md](CHANGE_LOG.md#-1-история-изменений-документации)

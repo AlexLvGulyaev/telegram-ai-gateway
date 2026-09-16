@@ -1,4 +1,4 @@
-# Telegram AI Gateway
+# 🌐 Telegram AI Gateway
 
 Production-ready Telegram-бот для переработки статей в структурированные посты с использованием n8n и GigaChat API.
 
@@ -9,46 +9,46 @@ Production-ready Telegram-бот для переработки статей в �
 
 ---
 
-## Возможности
+## ✨ 1. Возможности
 
 - 📥 Приём URL статьи из Telegram
 - 🧹 Очистка текста от мусора
 - 🤖 Генерация поста через GigaChat API
 - ✂️ Разбиение длинных сообщений
-- 🔧 Полноценная обработка ошибок
+- 🔧 Обработка ошибок
 - 📊 Логирование выполнения
 
 ---
 
-## Сценарии
+## 🎬 2. Сценарии
 
 ### Успешная обработка статьи
 
-![Telegram — успешная обработка](docs/screenshots/PEn04_TG_valid.png)
+![Telegram — успешная обработка](docs/screenshots/TGW_tg_valid.png)
 
 Пользователь отправляет ссылку на статью — бот возвращает структурированный пост.
 
 ### Поток обработки
 
-![Основной workflow](docs/screenshots/PEn04_main_workflow.png)
+![Основной workflow](docs/screenshots/TGW_main_workflow.png)
 
 Маршрут обработки запроса: Telegram Trigger → Load Page → Extract Article → Clean Text → GigaChat → Split Message → Send Message.
 
 ### Журналирование выполнения
 
-![Log Writer workflow](docs/screenshots/PEn04_log_workflow.png)
+![Log Writer workflow](docs/screenshots/TGW_log_workflow.png)
 
 Система журналирования: Execute Workflow → Log Writer → PostgreSQL. Каждый этап выполнения записывается с request_id для трассировки.
 
 ### Обработка ошибок
 
-![Telegram — обработка ошибок](docs/screenshots/PEn04_TG_errors.png)
+![Telegram — обработка ошибок](docs/screenshots/TGW_tg_errors.png)
 
 Пользовательские сообщения на русском языке при ошибках загрузки, авторизации и API. Система различает DNS-ошибки, HTTP-статусы (404, 403, 500), SSL-проблемы и ошибки AI-сервиса.
 
 ---
 
-## Быстрый старт
+## 🚀 3. Быстрый старт
 
 ### Требования
 
@@ -89,7 +89,7 @@ docker-compose up -d
 
 ---
 
-## Архитектура
+## 🏗️ 4. Архитектура
 
 ```mermaid
 flowchart LR
@@ -106,7 +106,7 @@ flowchart LR
 
 ---
 
-## Документация
+## 📚 5. Документация
 
 | Документ | Назначение |
 |----------|------------|
@@ -119,12 +119,10 @@ flowchart LR
 
 ---
 
-## Статус
-
-**Версия:** 2.0
+## ✅ 6. Статус
 
 **Что реализовано:**
-- ✅ Полноценная обработка ошибок
+- ✅ Обработка ошибок
 - ✅ Retry механизмы
 - ✅ Логирование в PostgreSQL
 - ✅ Разбиение длинных сообщений
@@ -133,12 +131,18 @@ flowchart LR
 
 ---
 
-## Лицензия
+## 📄 7. Лицензия
 
 MIT License. См. [LICENSE](LICENSE).
 
 ---
 
-## Автор
+## 👥 8. Автор
 
 AI Automation Portfolio Lab
+
+---
+
+**Статус:** Production Ready
+**Последнее обновление:** 2026-09-16
+**История изменений:** [📝 CHANGE_LOG.md](docs/CHANGE_LOG.md#-1-история-изменений-документации)

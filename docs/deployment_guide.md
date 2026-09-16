@@ -1,8 +1,8 @@
-# Deployment Guide
+# 🚀 Telegram AI Gateway · Deployment Guide
 
 Руководство по развёртыванию Telegram AI Gateway на VPS с HTTPS.
 
-## Версия n8n
+## ℹ️ 1. Версия n8n
 
 **Текущая версия:** n8n 2.29.8 (stable)
 
@@ -19,7 +19,7 @@
 
 ---
 
-## Предпосылки
+## 📋 2. Предпосылки
 
 - VPS с публичным IP
 - Доменное имя (опционально, для webhook режима)
@@ -29,7 +29,7 @@
 
 ---
 
-## Режимы работы
+## 🔀 3. Режимы работы
 
 Проект поддерживает два режима работы:
 
@@ -47,7 +47,7 @@
 
 ---
 
-## Deployment Validation
+## 🧪 4. Deployment Validation
 
 Deployment Validation состоит из двух уровней проверки:
 
@@ -109,7 +109,7 @@ Deployment Validation состоит из двух уровней проверк
 
 ---
 
-## Развёртывание на VPS
+## 🖥️ 5. Развёртывание на VPS
 
 ### 1. Подготовка VPS
 
@@ -401,7 +401,7 @@ curl http://localhost:5678/healthz
 # Должен вернуться ответ: {"status":"ok"}
 ```
 
-## Настройка HTTPS
+## 🔐 6. Настройка HTTPS
 
 ### Вариант 1: Nginx + Let's Encrypt
 
@@ -492,7 +492,7 @@ sudo systemctl restart caddy
 - Настроит HTTPS
 - Будет автоматически обновлять сертификаты
 
-## Настройка Webhook
+## 📡 7. Настройка Webhook
 
 ### Polling vs Webhook
 
@@ -530,7 +530,7 @@ curl https://your-domain.com/healthz
 
 **4. Telegram автоматически установит webhook при активации workflow.**
 
-## Мониторинг
+## 📊 8. Мониторинг
 
 ### Health Checks
 
@@ -584,7 +584,7 @@ docker stats
 docker system df
 ```
 
-## Бэкап и восстановление
+## 💾 9. Бэкап и восстановление
 
 ### Бэкап PostgreSQL
 
@@ -625,7 +625,7 @@ cat ~/backups/n8n-20260108.sql | docker exec -i telegram-ai-gateway-postgres psq
 docker compose start n8n
 ```
 
-## Обновление
+## 🔄 10. Обновление
 
 ### Обновление кода
 
@@ -668,7 +668,7 @@ docker compose up -d
 docker exec telegram-ai-gateway-n8n n8n import:workflow --input=/home/node/.n8n/workflows/telegram-ai-gateway.json
 ```
 
-## Безопасность
+## 🛡️ 11. Безопасность
 
 ### Firewall
 
@@ -757,7 +757,7 @@ sudo apt upgrade -y
 sudo apt autoremove -y
 ```
 
-## Troubleshooting
+## 🚨 12. Troubleshooting
 
 ### Проблема: n8n не запускается
 
@@ -896,7 +896,7 @@ services:
       - n8n_default
 ```
 
-## Наблюдения из Deployment Validation
+## 🧾 13. Наблюдения из Deployment Validation
 
 ### 1. Имена nodes в n8n (наблюдение)
 
@@ -964,7 +964,7 @@ docker compose down -v
 docker compose up -d
 ```
 
-## Чеклист развёртывания
+## ✅ 14. Чеклист развёртывания
 
 ### Infrastructure Validation
 
@@ -1009,3 +1009,9 @@ docker compose up -d
 - [ ] Бэкапы настроены
 - [ ] Мониторинг настроен
 - [ ] Credentials безопасно хранятся
+
+---
+
+**Статус:** Актуален · Source of Truth развёртывания
+**Последнее обновление:** 2026-09-16
+**История изменений:** [📝 CHANGE_LOG.md](CHANGE_LOG.md#-1-история-изменений-документации)

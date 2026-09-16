@@ -1,18 +1,14 @@
-# Architecture Decisions: Telegram AI Gateway
-
-**Версия:** 1.0
-**Дата:** 2026-07-10
-**Статус:** Architecture Decisions Documented
+# 📐 Telegram AI Gateway · Architecture Decisions
 
 ---
 
-## Цель документа
+## 🎯 1. Цель документа
 
 Зафиксировать архитектурные решения с обоснованием для будущего развития проекта.
 
 ---
 
-## Решение 1: Minimal Provider Contract
+## ✅ 2. Решение 1: Minimal Provider Contract
 
 ### Проблема
 
@@ -156,7 +152,7 @@ Provider Adapters:
 
 ---
 
-## Решение 2: Source-Independent Content Processing
+## ✅ 3. Решение 2: Source-Independent Content Processing
 
 ### Проблема
 
@@ -341,7 +337,7 @@ flowchart TB
 
 ---
 
-## Решение 3: Workflow Layering (8 слоёв)
+## ✅ 4. Решение 3: Workflow Layering (8 слоёв)
 
 ### Проблема
 
@@ -430,7 +426,7 @@ Workflow растёт, становится сложнее понимать ар
 
 ---
 
-## Решение 4: Reusable Components Identification
+## ✅ 5. Решение 4: Reusable Components Identification
 
 ### Проблема
 
@@ -593,7 +589,7 @@ Workflow растёт, становится сложнее понимать ар
 
 ---
 
-## Отложенные решения
+## ⏳ 6. Отложенные решения
 
 ### 1. Реализация Provider Adapter Pattern
 
@@ -628,7 +624,7 @@ Workflow растёт, становится сложнее понимать ар
 
 ---
 
-## Предложения по следующему инженерному спринту
+## 🚀 7. Предложения по следующему инженерному спринту
 
 ### Предложение 1: Provider Interface Refinement
 
@@ -686,7 +682,7 @@ Workflow растёт, становится сложнее понимать ар
 
 ---
 
-## Заключение
+## 🏁 8. Заключение
 
 Архитектура Telegram AI Gateway спроектирована для:
 
@@ -700,6 +696,6 @@ Workflow растёт, становится сложнее понимать ар
 
 ---
 
-**Документ создан:** 2026-07-08
-**Версия:** 1.0
-**Статус:** Architecture Sprint Complete
+**Статус:** Architecture Decisions Documented
+**Последнее обновление:** 2026-09-16
+**История изменений:** [📝 CHANGE_LOG.md](CHANGE_LOG.md#-1-история-изменений-документации)
