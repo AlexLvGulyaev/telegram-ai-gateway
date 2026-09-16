@@ -15,7 +15,7 @@
 - PostgreSQL user default изменился с `root` на `postgres`
 - Требуется `CODE_ENABLE_STDOUT=true` для вывода console.log
 
-Подробнее: [engineering-investigation-n8n-update.md](engineering-investigation-n8n-update.md)
+Несовместимость с n8n 1.120.x выявлена в ходе инженерного исследования проекта; выбор стабильной версии 2.29.8 зафиксирован в docker-compose.yml.
 
 ---
 

@@ -206,7 +206,7 @@ curl -u admin:<N8N_BASIC_AUTH_PASSWORD> http://localhost:5678/api/v1/credentials
 ## 📚 7. Связанные документы
 
 - [Deployment Guide](deployment_guide.md) — полное руководство по развёртыванию
-- [Workflow Overview](workflow_overview.md) — обзор workflow
+- [Architecture](architecture.md) — устройство workflow и журналирования
 
 ---
 

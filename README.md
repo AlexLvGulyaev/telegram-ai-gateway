@@ -84,7 +84,7 @@ flowchart LR
 
 Пользователь отправляет URL в Telegram → workflow загружает статью → очищает текст → генерирует пост через GigaChat → возвращает результат; параллельно каждый этап записывается в PostgreSQL через отдельный Log Writer workflow.
 
-**Подробнее:** [Architecture](docs/architecture.md) · [Workflow Overview](docs/workflow_overview.md)
+**Подробнее:** [Architecture](docs/architecture.md)
 
 ---
 
@@ -159,21 +159,14 @@ docker-compose up -d
 | [User Guide](docs/user_guide.md) | Как пользоваться ботом: сообщения об ошибках, советы |
 | [Deployment Guide](docs/deployment_guide.md) | Развёртывание (VPS + HTTPS / локальный Docker), эксплуатация, troubleshooting, бэкап, обновление |
 | [Credentials Setup](docs/credentials-setup.md) | Настройка credentials: Telegram, GigaChat, PostgreSQL |
-| [Known Issues](docs/known_issues.md) | Известные проблемы и обходные пути |
-| [Limitations](docs/limitations.md) | Ограничения платформы и рекомендации по обходу |
+| [Limitations](docs/limitations.md) | Ограничения платформы, известные проблемы и обходные пути |
 
 ### Для инженеров и интеграторов
 
 | Документ | О чём |
 |----------|-------|
-| [Architecture](docs/architecture.md) | C4-диаграммы, потоки данных, обработка ошибок, безопасность |
-| [Workflow Overview](docs/workflow_overview.md) | Workflow изнутри: ноды, версии, переменные окружения |
-| [Architecture Decisions](docs/architecture-decisions.md) | Принятые архитектурные решения и обоснования |
-| [Logging Integration Guide](docs/logging-integration-guide.md) | Как устроено журналирование исполнения |
-| [Negative Tests](docs/negative_tests.md) | Протестированные негативные сценарии |
+| [Architecture](docs/architecture.md) | C4-диаграммы, устройство workflow (ноды, retry, конфигурация), журналирование исполнения, архитектурные решения, результаты инженерного тестирования |
 | [PROJECT_STATE](docs/PROJECT_STATE.md) | Паспорт состояния проекта |
-| [Engineering Investigation](docs/engineering-investigation-n8n-update.md) | Историческое исследование: выбор версии n8n |
-| [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) | Архивный план реализации (реализован 2026-07-08…07-10) |
 | [CHANGE_LOG](docs/CHANGE_LOG.md) | История изменений документации |
 
 ---
@@ -213,7 +206,7 @@ telegram-ai-gateway/
 - **Внешние зависимости** — доступность исходного сайта, GigaChat API и Telegram API влияет на обработку; retry смягчает временные сбои, но не гарантирует результат.
 - **Качество генерации зависит от модели** — пост формируется GigaChat; промпт настраивается параметрами, но результат стоит проверять перед публикацией.
 
-Полный перечень ограничений и известных проблем: [Limitations](docs/limitations.md) · [Known Issues](docs/known_issues.md).
+Полный перечень ограничений и известных проблем: [Limitations](docs/limitations.md).
 
 ---
 

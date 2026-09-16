@@ -50,7 +50,7 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 - PostgreSQL таблица workflow_logs
 - Request ID для корреляции логов
 - Точки логирования на всех критических этапах
-- Документация: [logging-integration-guide.md](logging-integration-guide.md)
+- Документация: [architecture.md](architecture.md), §6 «Журналирование исполнения»
 
 ### Конфигурация
 
@@ -70,7 +70,7 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 - **Log Writer workflow** `workflows/Telegram AI Gateway - Log Writer.json` (4 nodes) — reusable-workflow журналирования событий в PostgreSQL (`workflow_logs`).
 - **PostgreSQL 15** — credentials n8n, execution history, журнал `workflow_logs`.
 
-Состав и назначение нод — [workflow_overview.md](workflow_overview.md); архитектура и C4-диаграммы (Context L1 / Container L2, обработка ошибок, безопасность) — [architecture.md](architecture.md).
+Состав и назначение нод, retry-политики и конфигурация — [architecture.md](architecture.md), §3; C4-диаграммы (Context L1 / Container L2, обработка ошибок, безопасность) — [architecture.md](architecture.md), §1–2, 5, 9.
 
 ---
 
@@ -143,7 +143,7 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 
 ## 🚨 8. Известные проблемы
 
-См. [known_issues.md](known_issues.md)
+См. [limitations.md](limitations.md)
 
 ---
 

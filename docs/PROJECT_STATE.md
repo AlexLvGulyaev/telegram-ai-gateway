@@ -30,7 +30,7 @@
 - Основной workflow: `workflows/Telegram AI Gateway.json` (39 nodes: 28 основных + 11 Execute Workflow для логирования)
 - Log Writer workflow: `workflows/Telegram AI Gateway - Log Writer.json` (4 nodes)
 
-**Известные проблемы и ограничения:** [known_issues.md](known_issues.md), [limitations.md](limitations.md)
+**Известные проблемы и ограничения:** [limitations.md](limitations.md)
 
 ---
 
@@ -52,13 +52,13 @@
 
 ## 🏗️ 5. Architecture
 
-Реализованные архитектурные решения (обоснования и альтернативы — [architecture-decisions.md](architecture-decisions.md), диаграммы — [architecture.md](architecture.md)):
+Реализованные архитектурные решения (суть, обоснования и отклонённые альтернативы — [architecture.md](architecture.md), §7):
 
 1. **Minimal Provider Contract** — параметр `AI_PROVIDER`, provider-independent имена параметров, выделенные GigaChat-specific nodes.
 2. **Content Source Abstraction** — параметр `CONTENT_SOURCE`, выделенные URL-specific nodes.
 3. **Extraction Strategy с Fallback** — приоритет CSS-селекторов, конфигурация `EXTRACT_SELECTORS`.
 4. **Request Context / Correlation ID** — `request_id` (UUID v4) прокидывается через все ноды.
-5. **Execution Logging** — отдельный Log Writer workflow, таблица `workflow_logs` в PostgreSQL ([logging-integration-guide.md](logging-integration-guide.md)).
+5. **Execution Logging** — отдельный Log Writer workflow, таблица `workflow_logs` в PostgreSQL ([architecture.md](architecture.md), §6).
 
 ---
 
@@ -123,7 +123,7 @@
 
 ## 🔧 8. Key Technology Areas
 
-- n8n workflow engine (v2.29.8, stable — выбор версии обоснован в [architecture-decisions.md](architecture-decisions.md) и [engineering-investigation-n8n-update.md](engineering-investigation-n8n-update.md))
+- n8n workflow engine (v2.29.8, stable)
 - PostgreSQL database (v15)
 - Docker Compose deployment
 - Telegram Bot API integration

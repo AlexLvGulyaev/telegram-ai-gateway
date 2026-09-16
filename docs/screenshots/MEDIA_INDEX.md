@@ -73,12 +73,12 @@ GitHub.
 | `docs/architecture.md` | `portfolio` (hero DARK) — архитектурная витрина |
 | `docs/user_guide.md` | `tg` — шаги пользователя и сообщения об ошибках |
 | Витрина ai-portfolio | `portfolio` — hero-иллюстрация карточки кейса |
-| `flow`-скриншоты | Служебные свидетельства реализации: не привязаны к текущим документам слоя 1–2 (в README не используются по решению владельца); исторически — архивный `IMPLEMENTATION_PLAN.md` |
+| `flow`-скриншоты | Служебные свидетельства реализации: не привязаны к текущим документам слоя 1–2 (в README не используются по решению владельца) |
 
 > Принцип: изображения в слоях 1–2 — только продуктовые (`tg`, `portfolio`).
 > `flow`-скриншоты — инженерные доказательства; они остаются в каталоге, но
 > вставляются в документ только если документ объясняет тезис «как устроено
-> внутри» (см. [workflow_overview.md](../workflow_overview.md)).
+> внутри» (см. [architecture.md](../architecture.md), §3).
 
 ---
 
@@ -96,7 +96,6 @@ GitHub.
 - [🌐 `README.md`](../../README.md)
 - [📖 `docs/user_guide.md`](../user_guide.md)
 - [🏗️ `docs/architecture.md`](../architecture.md) — архитектурные схемы в Mermaid.
-- [⚙️ `docs/workflow_overview.md`](../workflow_overview.md)
 
 ---
 
