@@ -10,7 +10,7 @@ Telegram-бот, который берёт на себя рутину конте
 [![n8n Version](https://img.shields.io/badge/n8n-2.29.8-blue)](https://docs.n8n.io/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[🚀 Развёртывание](docs/deployment_guide.md) · [🏗️ Архитектура](docs/architecture.md) · [📊 Паспорт проекта](docs/PROJECT_STATE.md)
+[💼 Бизнес-ценность](docs/business_value.md) · [📖 Юзер-гайд](docs/user_guide.md) · [🚀 Развёртывание](docs/deployment_guide.md)
 
 ---
 
@@ -28,6 +28,8 @@ Telegram-бот, который берёт на себя рутину конте
 
 Пользовательские сообщения на русском языке: система различает DNS-ошибки, HTTP-статусы (404, 403, 500), SSL-проблемы и ошибки AI-сервиса — читатель всегда понимает, что произошло и что делать дальше.
 
+Все сообщения и правила работы с ботом — в [docs/user_guide.md](docs/user_guide.md).
+
 ---
 
 ## ❓ 2. Зачем нужен
@@ -41,6 +43,8 @@ Telegram-бот, который берёт на себя рутину конте
 На одну статью уходят десятки минут однообразной работы, а качество зависит от загрузки и настроения исполнителя.
 
 **Telegram AI Gateway решает эту проблему:** отправка ссылки превращается в готовый пост за один шаг, каждый прогон журналируется в PostgreSQL, а ошибки обрабатываются понятными сообщениями — процесс становится повторяемым и измеримым.
+
+Больше о бизнес-ценности — в [docs/business_value.md](docs/business_value.md).
 
 ---
 
@@ -77,14 +81,6 @@ flowchart LR
 ```
 
 Пользователь отправляет URL в Telegram → workflow загружает статью → очищает текст → генерирует пост через GigaChat → возвращает результат; параллельно каждый этап записывается в PostgreSQL через отдельный Log Writer workflow.
-
-Реализация в n8n — основной workflow (39 нод) с детальной обработкой ошибок:
-
-![Основной workflow](docs/screenshots/TGW_main_workflow.png)
-
-Журналирование — Log Writer workflow (4 ноды) пишет в таблицу `workflow_logs`:
-
-![Log Writer workflow](docs/screenshots/TGW_log_workflow.png)
 
 **Подробнее:** [Architecture](docs/architecture.md) · [Workflow Overview](docs/workflow_overview.md)
 
@@ -151,12 +147,14 @@ docker-compose up -d
 
 | Документ | О чём |
 |----------|-------|
+| [Business Value](docs/business_value.md) | Бизнес-ценность: какую рутину снимает, кому полезен, модель ценности |
 | [SPEC](docs/SPEC.md) | Какими возможностями обладает продукт, для кого, метрики качества |
 
 ### Для пользователей и операторов
 
 | Документ | О чём |
 |----------|-------|
+| [User Guide](docs/user_guide.md) | Как пользоваться ботом: сообщения об ошибках, советы |
 | [Deployment Guide](docs/deployment_guide.md) | Развёртывание (VPS + HTTPS / локальный Docker), эксплуатация, troubleshooting, бэкап, обновление |
 | [Credentials Setup](docs/credentials-setup.md) | Настройка credentials: Telegram, GigaChat, PostgreSQL |
 | [Known Issues](docs/known_issues.md) | Известные проблемы и обходные пути |
