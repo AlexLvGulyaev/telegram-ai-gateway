@@ -2,9 +2,70 @@
 
 Отчёт о фактическом прогоне Deployment Validation. Процедура и чеклист — [Deployment Guide](deployment_guide.md), §8.
 
-> ⚠️ **Актуальность:** прогон выполнен 2026-07-09 по версии пакета до структурной реорганизации документации 2026-09-16. Процедуры развёртывания при реорганизации не изменялись (разделы переехали без правки команд), но по правилу «изменение DEPLOYMENT_GUIDE → повторная Validation» после реорганизации требуется повторный прогон в чистом окружении.
+> ⚠️ **Актуальность:** в отчёте два прогона. Прогон 2026-09-16 (после реорганизации документации) — **Integration FAILED**: выявлена неработоспособность polling-режима, DEPLOYMENT_GUIDE правлен по результатам, повторный полный прогон запланирован. Прогон 2026-07-09 (исторический) — PASSED.
 
-## 📋 1. Сводка
+## 🔁 Прогон 2026-09-16 (после реорганизации документации) — Integration FAILED
+
+### Сводка
+
+| Параметр | Значение |
+|----------|----------|
+| Дата | 2026-09-16 |
+| Основание | Правило «изменение DEPLOYMENT_GUIDE → повторная Validation» после реорганизации (коммиты e20df75, 9d43c14) |
+| Окружение | Отдельный Docker-стек на существующем VPS (compose-проект `taig-dv`, свежий клон 9d43c14, чистые volumes, порт 5679) |
+| Infrastructure Validation | ✅ PASSED |
+| Integration Validation | ❌ FAILED (активация main workflow в polling-режиме) |
+| Использованы реальные credentials | Telegram Bot Token, GigaChat credentials (факт, без публикации значений) |
+
+**Примечание об окружении:** правило «Validation в чистом окружении» соблюдено в объёме стека: свежий клон, чистые volumes (`taig-dv_*`), изолированная compose-сеть, отдельный порт — ни одна сущность валидационного экземпляра не пересекалась с продом. VPS при этом не новый: для освобождения фиксированных имён контейнеров (`container_name` в compose) прод-стек был остановлен на время прогона и восстановлен после. Полноценный прогон на новом VPS остаётся критерием для повторного прогона.
+
+### Infrastructure Validation — ✅ PASSED
+
+Выполнено по гайду (§4, чеклист §8):
+
+- [x] Клон репозитория, `.env` создан (`cp .env.example .env`; пароли сгенерированы; placeholder-значения Telegram/GigaChat; `N8N_PORT=5679` — документированная переменная, 5678 занят другим стеком хоста)
+- [x] `docker compose up -d` — оба контейнера healthy
+- [x] `curl localhost:5679/healthz` → OK
+- [x] PostgreSQL: `SELECT 1;` через `docker exec`
+- [x] `n8n list:workflow` внутри контейнера — доступ к БД подтверждён
+- [x] Миграции 001 и 002 применены; `\d workflow_logs` — структура соответствует
+- [x] Оба workflow импортированы (`n8n import:workflow`; ID из репозиторийных JSON сохранены — `wW8hk2AUrwFbfRkY`, `ZKavjvDKoohBhWcj` — связи нод с credentials сошлись автоматически)
+
+### Integration Validation — ❌ FAILED
+
+Пройдено:
+
+- [x] Credentials созданы в n8n: Telegram Bot API, Header Auth (GigaChat), PostgreSQL — через `n8n import:credentials` (см. Отклонение №1); существование и структура проверены `n8n export:credentials --all --decrypted` (значения нигде не выводились)
+- [x] Telegram Bot Token валиден (проверка `getMe` через Telegram Bot API — бот отвечает, имя совпадает с задокументированным)
+- [x] Оба workflow активированы флагом (`n8n update:workflow --active=true` + restart n8n; см. Отклонение №2) — Log Writer активировался успешно
+- [ ] **Активация main workflow — FAIL:** n8n фиксирует активацию в БД (после рестарта — «Activated workflow "Telegram AI Gateway"»), но Telegram Trigger не регистрируется: лог содержит `Bad request - please check your parameters`; сообщения боту не доставляются
+
+**Root cause (доказан):** Telegram Trigger в n8n при активации workflow всегда регистрирует webhook через `setWebhook` (независимо от наличия `WEBHOOK_URL`) и не имеет polling-фоллбэка. Telegram API принимает только HTTPS-адреса — при пустом `WEBHOOK_URL` регистрация отклоняется с ошибкой «An HTTPS URL must be provided for webhook». Root cause установлен по debug-логу n8n (`N8N_LOG_LEVEL=debug`) и воспроизведён прямым вызовом `setWebhook` с http:// и https:// адресами (https принят, http отклонён). **Вывод: описанный в гайде режим polling (`WEBHOOK_URL=` пустое) для данного workflow неработоспособен — активация невозможна.**
+
+GigaChat-путь end-to-end в этом прогоне не проверен: активация main workflow не состоялась, до вызова LLM прогон не дошёл. Боковая проверка TLS из контейнера (node fetch к `ngw.devices.sberbank.ru:9443`) дала `SELF_SIGNED_CERT_IN_CHAIN` — это артефакт методики проверки, а не дефект: в workflow у обеих GigaChat-HTTP-нод включён `allowUnauthorizedCerts: true` (n8n «Allow Unauthorized Certs»), и вызовы n8n проходят без системного доверия к цепочке (прод подтверждает: успешные прогоны в день валидации). Наблюдение безопасности — ниже, 3.4.
+
+### Отклонения от гайда (действия вне DEPLOYMENT_GUIDE)
+
+| № | Действие в прогоне | Что вместо этого в гайде | Комментарий |
+|---|--------------------|--------------------------|-------------|
+| 1 | Credentials созданы CLI: `n8n import:credentials --input=...` | Создание через UI ([credentials-setup.md](credentials-setup.md)) | Гайдовый путь headless-методикой не проверен и не опровергнут; CLI-путь потребовался из-за отсутствия браузера в прогоне |
+| 2 | Активация CLI: `n8n update:workflow --active=true` + рестарт n8n | Тумблер **Active** в UI (§4.5, §8) | Аналогично: UI-путь не проверен; но root cause (HTTPS-требование Telegram) от UI не зависит — активация в polling-режиме падает любым способом |
+| 3 | `N8N_LOG_LEVEL=debug` в .env | Не описано | Только для диагностики root cause; дефект диагностирован по stack trace в логе |
+| 4 | Прямые вызовы `setWebhook` для доказательства root cause | Не описано | Диагностика после FAIL, не часть развёртывания |
+| 5 | Публичный REST API n8n (`/api/v1/credentials`) — 401 без `X-N8N-API-KEY` | Не описано | API-ключ создаётся в UI; headless-путь к CLI (Отклонение №1) |
+| 6 | Остановка прод-стека (`docker compose down` без `-v`, volumes сохранены) | Не описано | Следствие фиксированных `container_name` в compose: два стека на одном Docker-хосте конфликтуют по именам. Для прогона на том же хосте требуется остановка прода |
+
+### Наблюдения прогона 2026-09-16
+
+- **Порт:** при наличии на хосте других n8n-стеков используется документированная переменная `N8N_PORT` (в прогоне — 5679).
+- **Log Writer: метка времени.** Все записи прогона (REQUEST_RECEIVED → WORKFLOW_FINISHED) несут одинаковый `created_at`, передаваемый из main workflow, — метки не отражают фактическое время каждого этапа (важно при разборе задержек по журналу).
+- **Безопасность TLS:** обе GigaChat-ноды ходят в API Сбера с отключенной проверкой сертификата (`allowUnauthorizedCerts: true`) — трафик уязвим к MITM; системное доверие к цепочке российского корневого CA в контейнере отсутствует.
+
+---
+
+## 📋 Прогон 2026-07-09 — PASSED
+
+### Сводка
 
 | Параметр | Значение |
 |----------|----------|
@@ -15,21 +76,21 @@
 | Integration Validation | ✅ PASSED |
 | Использованы реальные credentials | Telegram Bot Token, GigaChat credentials (факт, без публикации значений) |
 
-## 🧪 2. Уровни проверки
+### Уровни проверки
 
-### Infrastructure Validation — ✅ PASSED
+**Infrastructure Validation — ✅ PASSED**
 
 Проверено в изолированном контуре без внешних зависимостей: запуск Docker Compose, healthy-статус контейнеров (PostgreSQL, n8n), применение миграций, импорт workflows, ответы health endpoints. Real credentials не требовались.
 
-### Integration Validation — ✅ PASSED
+**Integration Validation — ✅ PASSED**
 
-Проверено с реальными сервисами: создание трёх credentials в n8n (Telegram Bot API, GigaChat Basic Auth, PostgreSQL), активация обоих workflows, работа polling/webhook, ответ GigaChat API, запись журнала в PostgreSQL, полный пользовательский сценарий (URL → пост).
+Проверено с реальными сервисами: создание трёх credentials в n8n (Telegram Bot API, GigaChat Basic Auth, PostgreSQL), активация обоих workflows, работа webhook, ответ GigaChat API, запись журнала в PostgreSQL, полный пользовательский сценарий (URL → пост).
 
 Результаты функционального тестирования (таблица негативных сценариев, подтверждённые маршруты журнала, непроверенный Timeout) — [architecture.md](architecture.md), §8.
 
-## 🧾 3. Наблюдения из прогона
+### Наблюдения из прогона 2026-07-09
 
-### 3.1. Имена nodes в n8n
+#### Имена nodes в n8n
 
 **Наблюдение:** на n8n 2.29.8 после импорта workflow через CLI webhook не работал, пока имя Telegram Trigger node содержало пробел («Telegram Trigger»). После переименования без пробела («TelegramTrigger») webhook заработал.
 
@@ -43,7 +104,7 @@ docker exec telegram-ai-gateway-postgres psql -U n8n -d n8n -c "SELECT * FROM we
 
 Если есть записи с `%20` — рассмотреть переименование node (не считать критической ошибкой без дополнительной проверки).
 
-### 3.2. Docker сеть для Traefik
+#### Docker сеть для Traefik
 
 **Наблюдение:** в этом проекте с Traefik reverse proxy контейнеры не работали без подключения к сети `n8n_default`.
 
@@ -56,7 +117,7 @@ docker network connect n8n_default telegram-ai-gateway-n8n
 docker network connect n8n_default telegram-ai-gateway-postgres
 ```
 
-### 3.3. Экранирование `$` в Docker Compose
+#### Экранирование `$` в Docker Compose
 
 **Наблюдение:** пароль с символами `$` (`$$$`) в .env не работал.
 
@@ -76,6 +137,6 @@ POSTGRES_PASSWORD=Pass$$word
 
 ---
 
-**Статус:** Прогон 2026-07-09 — PASSED; после реорганизации документации 2026-09-16 требуется повторный прогон (чеклист — Deployment Guide §8)
+**Статус:** Прогон 2026-09-16 — Integration FAILED (root cause устранён правкой Deployment Guide; повторный полный прогон запланирован); Прогон 2026-07-09 — PASSED (исторический)
 **Последнее обновление:** 2026-09-16
 **История изменений:** [📝 CHANGE_LOG.md](CHANGE_LOG.md#-1-история-изменений-документации)

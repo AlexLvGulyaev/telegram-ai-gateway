@@ -134,9 +134,9 @@ docker-compose up -d
    - Telegram Bot API
    - GigaChat Basic Auth
    - PostgreSQL (для Log Writer)
-3. Примените миграции и активируйте workflow
+3. Примените миграции; активируйте workflow — активация требует HTTPS-домена (`WEBHOOK_URL`): локально без HTTPS бот сообщений не получает
 
-**Подробное руководство:** [Deployment Guide](docs/deployment_guide.md) — развёртывание на VPS с HTTPS и локальный Docker-режим; эксплуатация — [Operations Guide](docs/operations.md).
+**Подробное руководство:** [Deployment Guide](docs/deployment_guide.md) — развёртывание на VPS с HTTPS (обязательный режим работы) и локальный Docker-режим (инфраструктура и credentials); эксплуатация — [Operations Guide](docs/operations.md).
 
 ---
 
@@ -201,6 +201,7 @@ telegram-ai-gateway/
 
 ## ⚠️ 11. Ограничения
 
+- **Для работы бота обязателен HTTPS-домен** — Telegram принимает только HTTPS-webhook; локальный стек без HTTPS подходит для проверки инфраструктуры, но не для сообщений боту; см. [Deployment Guide](docs/deployment_guide.md), §3.
 - **Время выполнения растёт с объёмом статьи** — для длинных текстов есть оперативный обход (уменьшение лимитов текста/промпта); см. [Limitations](docs/limitations.md).
 - **Внешние зависимости** — доступность исходного сайта, GigaChat API и Telegram API влияет на обработку; сбой вызова завершается понятным сообщением об ошибке.
 - **Качество генерации зависит от модели** — пост формируется GigaChat; промпт настраивается параметрами, но результат стоит проверять перед публикацией.

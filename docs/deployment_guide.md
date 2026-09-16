@@ -20,30 +20,25 @@
 Для локального развёртывания (§4) достаточно Docker на локальной машине; для production на VPS (§5):
 
 - VPS с публичным IP
-- Доменное имя (опционально, для webhook режима)
+- Доменное имя с HTTPS — обязательно для работы бота (см. §3 «Режимы работы»)
 - Docker и Docker Compose установлены
 - Telegram Bot Token (от @BotFather)
 - GigaChat API credentials (client_id и client_secret)
 
 ## 🔀 3. Режимы работы
 
-Проект поддерживает два режима работы:
+**Единственный работоспособный режим — Webhook.** Telegram Trigger в n8n при активации workflow регистрирует webhook в Telegram API; polling-фоллбэка у триггера нет. Telegram API принимает только HTTPS-адреса: при пустом `WEBHOOK_URL` активация завершается ошибкой «Bad request - please check your parameters» и бот не получает сообщения (подтверждено [Deployment Validation](deployment_validation_report.md), прогон 2026-09-16).
 
-### Polling (по умолчанию)
-- **Преимущества:** Проще настройка, не требует HTTPS
-- **Недостатки:** Большая нагрузка на Telegram API
-- **Рекомендуется для:** Разработки и тестирования
-- **Конфигурация:** `WEBHOOK_URL=` (пустое значение)
-
-### Webhook
-- **Преимущества:** Меньше нагрузка, быстрее реакция
-- **Недостатки:** Требует HTTPS и публичного домена
-- **Рекомендуется для:** Production
+### Webhook (обязательно)
+- **Требования:** HTTPS и публичный домен (§6)
 - **Конфигурация:** `WEBHOOK_URL=https://your-domain.com`
+- **Преимущества:** быстрая реакция, минимальная нагрузка на Telegram API
+
+> ℹ️ Ранее документированный режим polling (`WEBHOOK_URL=` пустое значение) неработоспособен: Telegram отклоняет http://-webhook («An HTTPS URL must be provided for webhook»), поэтому активация workflow невозможна.
 
 ## 💻 4. Локальное развёртывание (Docker Compose)
 
-Режим для разработки и тестирования: тот же Docker Compose-стек, только на локальной машине, без VPS и HTTPS (polling вместо webhook).
+Режим для разработки и тестирования: тот же Docker Compose-стек, только на локальной машине, без VPS и HTTPS. **Ограничение:** без HTTPS активация main workflow невозможна (§3), поэтому локальный стек подходит для проверки инфраструктуры и настройки credentials; полный пользовательский сценарий (сообщения боту) требует развёртывания с HTTPS — VPS по §5 или HTTPS-домен по §6.
 
 ### 1. Установка Docker (Ubuntu/Debian)
 
@@ -103,7 +98,7 @@ TELEGRAM_BOT_TOKEN=<your_bot_token>
 GIGACHAT_AUTH_KEY=<your_credentials>
 ```
 
-`WEBHOOK_URL` остаётся пустым (polling, см. §3 «Режимы работы»).
+`WEBHOOK_URL` в локальном режиме остаётся пустым — активация main workflow в этом режиме не выполняется (см. §3 «Режимы работы»).
 
 ### 3. Запуск
 
@@ -234,7 +229,7 @@ TELEGRAM_BOT_TOKEN=<your_bot_token>
 # GigaChat
 GIGACHAT_AUTH_KEY=<your_credentials>
 
-# Webhook URL (для production)
+# Webhook URL (обязательно — без него активация workflow невозможна, см. §3)
 WEBHOOK_URL=https://your-domain.com
 ```
 
@@ -555,19 +550,7 @@ sudo systemctl restart caddy
 
 ## 📡 7. Настройка Webhook
 
-### Polling vs Webhook
-
-**Polling (по умолчанию):**
-- Проще в настройке
-- Не требует HTTPS
-- Подходит для разработки
-- Установите `WEBHOOK_URL=` (пустое значение)
-
-**Webhook:**
-- Быстрее реакция
-- Меньше нагрузки на Telegram API
-- Требует HTTPS и публичного домена
-- Установите `WEBHOOK_URL=https://your-domain.com`
+Webhook — единственный работоспособный режим (§3): Telegram Trigger регистрирует webhook в Telegram API при активации, Telegram принимает только HTTPS-адреса.
 
 ### Настройка Webhook
 
@@ -629,9 +612,9 @@ Deployment Validation состоит из двух уровней проверк
 - [ ] Telegram Bot API credential создан
 - [ ] GigaChat Basic Auth credential создан
 - [ ] PostgreSQL credential создан
-- [ ] Workflow "Telegram AI Gateway" активирован
-- [ ] Workflow "Telegram AI Gateway - Log Writer" активирован
-- [ ] Telegram polling/webhook работает
+- [ ] `WEBHOOK_URL` установлен (HTTPS-домен, §7) — без него активация невозможна
+- [ ] Workflow "Telegram AI Gateway" активирован без ошибок (проверка: `docker compose logs n8n` — «Activated workflow ...», без «Bad request»)
+- [ ] Workflow "Telegram AI Gateway - Log Writer" активирован без ошибок
 - [ ] Тестовый URL отправлен боту
 - [ ] Бот вернул корректный ответ
 - [ ] Записи появились в workflow_logs таблице
@@ -655,6 +638,6 @@ Deployment Validation состоит из двух уровней проверк
 
 ---
 
-**Статус:** Актуален · Source of Truth развёртывания
+**Статус:** Правлен по результатам Deployment Validation 2026-09-16 (polling-режим снят; см. [отчёт](deployment_validation_report.md)) — повторный полный прогон Validation запланирован
 **Последнее обновление:** 2026-09-16
 **История изменений:** [📝 CHANGE_LOG.md](CHANGE_LOG.md#-1-история-изменений-документации)

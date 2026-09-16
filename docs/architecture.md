@@ -17,7 +17,7 @@ flowchart TB
     end
 
     User -->|URL статьи| BotAPI[Telegram Bot API<br/>api.telegram.org:443]
-    BotAPI -->|Webhook / Polling| Gateway
+    BotAPI -->|Webhook| Gateway
     Gateway -->|Результат / User-friendly сообщение об ошибке| BotAPI
     BotAPI -->|Результат / ошибка| User
 
@@ -36,7 +36,7 @@ flowchart TB
     end
 
     User[Telegram User] -->|URL статьи| BotAPI[Telegram Bot API<br/>api.telegram.org:443]
-    BotAPI -->|Webhook / Polling| N8N
+    BotAPI -->|Webhook| N8N
     N8N -->|Send Message / Send Error| User
 
     N8N -->|Execute Workflow| LogWriter
