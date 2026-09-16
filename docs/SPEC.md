@@ -22,7 +22,7 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 
 **Обработка:**
 1. Валидация URL (regex)
-2. Загрузка веб-страницы (HTTP Request с retry)
+2. Загрузка веб-страницы (HTTP Request)
 3. Извлечение текста статьи (HTML extraction с fallback)
 4. Очистка текста от мусора (stop markers)
 5. Формирование промпта для GigaChat
@@ -37,7 +37,6 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 
 **Реализовано:**
 - Валидация URL с пользовательским сообщением об ошибке
-- Retry-механизмы для HTTP requests (3 попытки для Load Page, 2 для GigaChat)
 - Обработка ошибок загрузки страницы (DNS, timeout, SSL, 404, 403, 500)
 - Обработка ошибок GigaChat API (400, 401, 429, 500)
 - Обработка ошибок извлечения текста
@@ -70,7 +69,7 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 - **Log Writer workflow** `workflows/Telegram AI Gateway - Log Writer.json` (4 nodes) — reusable-workflow журналирования событий в PostgreSQL (`workflow_logs`).
 - **PostgreSQL 15** — credentials n8n, execution history, журнал `workflow_logs`.
 
-Состав и назначение нод, retry-политики и конфигурация — [architecture.md](architecture.md), §3; C4-диаграммы (Context L1 / Container L2, обработка ошибок, безопасность) — [architecture.md](architecture.md), §1–2, 5, 9.
+Состав и назначение нод и конфигурация — [architecture.md](architecture.md), §3; C4-диаграммы (Context L1 / Container L2, обработка ошибок, безопасность) — [architecture.md](architecture.md), §1–2, 5, 9.
 
 ---
 
@@ -101,12 +100,8 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 |----------|---------|----------|
 | `HTTP_LOAD_TIMEOUT` | `30000` | Timeout загрузки страницы (ms) |
 | `HTTP_API_TIMEOUT` | `60000` | Timeout GigaChat API (ms) |
-| `HTTP_LOAD_RETRIES` | `3` | Попытки загрузки |
-| `HTTP_LOAD_RETRY_INTERVAL` | `1000` | Интервал retry загрузки (ms) |
-| `HTTP_TOKEN_RETRIES` | `2` | Попытки токена |
-| `HTTP_TOKEN_RETRY_INTERVAL` | `500` | Интервал retry токена (ms) |
-| `HTTP_API_RETRIES` | `2` | Попытки GigaChat API |
-| `HTTP_API_RETRY_INTERVAL` | `1000` | Интервал retry GigaChat (ms) |
+
+Retry-константы (`HTTP_LOAD_RETRIES`, `HTTP_LOAD_RETRY_INTERVAL`, `HTTP_TOKEN_RETRIES`, `HTTP_TOKEN_RETRY_INTERVAL`, `HTTP_API_RETRIES`, `HTTP_API_RETRY_INTERVAL`) объявлены в Configuration-ноде, но не используются — retry в workflow не реализован.
 
 ### Extraction
 
@@ -174,17 +169,17 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 | 4 | Prepare Input извлекает URL | URL передаётся далее |
 | 5 | Check URL проверяет валидность | Если валиден → переход к шагу 7 |
 | 6 | Если URL невалиден → Send Error Message | Пользователь получает сообщение об ошибке |
-| 7 | Load Page загружает HTML | HTML получен (с retry) |
+| 7 | Load Page загружает HTML | HTML получен |
 | 8 | Extract Article извлекает текст | Текст статьи извлечён (с fallback) |
 | 9 | Check Text проверяет длину | Если текст > 100 символов → переход к шагу 11 |
 | 10 | Если текст короткий → Send Error Message | Пользователь получает сообщение об ошибке |
 | 11 | Clean Text очищает текст | Очищенный текст |
 | 12 | Prepare Prompt формирует промпт | Промпт готов |
 | 13 | Generate RqUID создаёт UUID | RqUID для GigaChat |
-| 14 | Get GigaChat Token получает токен | access_token получен (с retry) |
+| 14 | Get GigaChat Token получает токен | access_token получен |
 | 15 | Check Token проверяет токен | Если токен валиден → переход к шагу 17 |
 | 16 | Если токен невалиден → Send Error Message | Пользователь получает сообщение об ошибке |
-| 17 | GigaChat генерирует пост | JSON с ответом (с retry) |
+| 17 | GigaChat генерирует пост | JSON с ответом |
 | 18 | Check Response проверяет ответ | Если ответ валиден → переход к шагу 20 |
 | 19 | Если ответ невалиден → Send Error Message | Пользователь получает сообщение об ошибке |
 | 20 | Split Message разбивает ответ | Сообщения до 4096 символов |
@@ -205,7 +200,6 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 |---------|----------|----------|
 | Время выполнения | 5-30 секунд | Типичное время обработки |
 | Успешные запросы | >90% | При корректных URL |
-| Retry success rate | >95% | При временных ошибках |
 | Message length compliance | 100% | Сообщения ≤4096 символов |
 | Logging coverage | 100% | Все критические этапы логируются |
 
@@ -227,7 +221,6 @@ Telegram AI Gateway — демонстрационный AI MVP, реализу�
 
 ✅ Workflow реализован и протестирован
 ✅ Обработка ошибок реализована
-✅ Retry-механизмы реализованы
 ✅ Логирование реализовано
 ✅ Configuration node создана
 ✅ Документация написана

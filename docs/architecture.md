@@ -168,51 +168,49 @@ flowchart TB
 |------|-----|-----------|
 | Telegram Trigger | Trigger | Приём сообщений (On Message) |
 | Configuration | Set | Конфигурация прогона и тексты сообщений об ошибках |
+| Content Source Detection | IF | Маршрутизация по источнику контента (`CONTENT_SOURCE`) |
+| Provider Entry Point | IF | Маршрутизация по AI-провайдеру (`AI_PROVIDER`) |
 | Prepare Input | Code | Извлечение URL и chat_id из webhook-данных |
 | Generate Request ID | Code | `request_id` и `created_at` для всех точек логирования прогона |
 | Check URL | IF | Валидация схемы (`http://` / `https://`) |
-| Load Page | HTTP Request | Загрузка статьи (retry 3×1000ms) |
+| Load Page | HTTP Request | Загрузка статьи (timeout `HTTP_LOAD_TIMEOUT`) |
 | Check Load Error | IF | Разбор ошибки загрузки (DNS / HTTP / SSL / таймаут) |
 | Format Load Error | Set | Формирование сообщения об ошибке загрузки |
 | Extract Article | HTML Extract | Извлечение текста статьи (несколько CSS-селекторов) |
-| Clean Text | Code | Очистка (stop markers, regex), обрезка до `MAX_TEXT_LENGTH` |
+| Clean Text | Code | Очистка (stop markers, regex), обрезка до `LIMIT_TEXT_LENGTH` |
 | Check Text | IF | Проверка, что извлечён непустой текст |
-| Prepare Prompt | Set | Сборка промпта, обрезка до `MAX_PROMPT_LENGTH` |
+| Prepare Prompt | Set | Сборка промпта, обрезка до `LIMIT_PROMPT_LENGTH` |
 | Generate RqUID | Code | Уникальный ID запроса к GigaChat |
-| Get GigaChat Token | HTTP Request | OAuth (retry 2×500ms) |
+| Get GigaChat Token | HTTP Request | OAuth (timeout `HTTP_API_TIMEOUT`) |
 | Check Token | IF | Проверка результата OAuth |
 | Format Auth Error | Set | Сообщение об ошибке авторизации |
-| GigaChat API | HTTP Request | Chat Completions (retry 2×1000ms) |
+| GigaChat | HTTP Request | Chat Completions (timeout `HTTP_API_TIMEOUT`) |
 | Check Response | IF | Проверка ответа AI-сервиса |
 | Format API Error | Set | Сообщение об ошибке AI-сервиса |
-| Split Message | Code | Разбиение поста по границам слов на части ≤ `MAX_MESSAGE_LENGTH` |
+| Split Message | Code | Разбиение поста по границам слов на части ≤ `LIMIT_MESSAGE_LENGTH` |
 | Send Message | Telegram | Отправка частей пользователю |
-| Send Error (*) | Telegram | Отправка сообщения об ошибке (5 вариантов по этапам) |
+| Send Error (API) / (Auth) / (Extract) / (Invalid URL) / (Load) | Telegram | Отправка сообщения об ошибке по этапам прогона (5 нод) |
 
 11 нод Execute Workflow вызывают Log Writer в точках логирования (§6).
 
-### Конфигурация (переменные окружения)
+### Конфигурация (Configuration-нода)
 
-Значения задаются в Configuration-ноде workflow; источник — переменные окружения n8n:
+Значения задаются в Configuration-ноде основного workflow (провайдер-независимые имена `LLM_*`):
 
 | Параметр | Назначение |
 |----------|-----------|
-| `GIGACHAT_MODEL` | Модель GigaChat (GigaChat-2-Max) |
-| `GIGACHAT_TEMPERATURE` | Температура генерации (0.1 — минимум вариативности) |
-| `MAX_TEXT_LENGTH` | Лимит текста статьи (12000 символов) |
-| `MAX_PROMPT_LENGTH` | Лимит промпта (5000 символов) |
-| `MAX_MESSAGE_LENGTH` | Лимит одного сообщения Telegram (4096) |
+| `LLM_MODEL` | Модель GigaChat (GigaChat-2-Max) |
+| `LLM_TEMPERATURE` | Температура генерации (0.1 — минимум вариативности) |
+| `LIMIT_TEXT_LENGTH` | Лимит текста статьи (12000 символов) |
+| `LIMIT_PROMPT_LENGTH` | Лимит промпта (5000 символов) |
+| `LIMIT_MESSAGE_LENGTH` | Лимит одного сообщения Telegram (4096) |
 | `CODE_ENABLE_STDOUT` | Console-логирование Code-нод (`true` в отладке) |
 
-### Retry-политики
+### Обработка сбоев внешних вызовов
 
-Retry применяется только к временным сбоям внешних вызовов; на пользовательские ошибки (невалидный URL, пустой текст) и ошибки извлечения retry не распространяется — они завершаются конкретным сообщением пользователю.
+Retry в workflow не реализован. HTTP-ноды (Load Page, Get GigaChat Token, GigaChat) работают с `onError: continueRegularOutput` — результат вызова (успех или ошибка) всегда передаётся следующей IF-ноде (Check Load Error, Check Token, Check Response), которая направляет прогон либо дальше по основному потоку, либо на форматирование и отправку пользовательского сообщения об ошибке. На пользовательские ошибки (невалидный URL, пустой текст) и ошибки извлечения это не влияет — они завершаются конкретным сообщением пользователю.
 
-| Нода | Попытки | Задержка |
-|------|---------|----------|
-| Load Page | 3 | 1000 ms |
-| Get GigaChat Token | 2 | 500 ms |
-| GigaChat API | 2 | 1000 ms |
+Retry-константы (`HTTP_LOAD_RETRIES`, `HTTP_LOAD_RETRY_INTERVAL`, `HTTP_TOKEN_RETRIES`, `HTTP_TOKEN_RETRY_INTERVAL`, `HTTP_API_RETRIES`, `HTTP_API_RETRY_INTERVAL`) объявлены в Configuration-ноде, но нигде не используются — зарезервированы для будущего включения retry.
 
 ## 🔄 4. Потоки данных
 
@@ -254,9 +252,8 @@ flowchart LR
 - Error flow для отправки сообщений об ошибках
 - User-friendly error messages
 
-**3. Retry Level:**
-- Retry для Load Page, Get GigaChat Token, GigaChat (§3)
-- Retry не применяется к валидационным ошибкам и ошибкам извлечения
+**3. Continue Level:**
+- `onError: continueRegularOutput` для HTTP Request нод — сбой передаётся IF-проверке; retry не реализован (§3)
 
 ### Error Flow Diagram
 
@@ -418,7 +415,7 @@ ORDER BY created_at;
 
 ### Непроверенный сценарий
 
-**Timeout:** `HTTP_LOAD_TIMEOUT = 30000ms` не сработал на `httpbin.org/delay/60` — требуется отдельная отладка timeout-механизма. Production не блокируется: retry-механизм работает корректно (проверен успешный retry после первой неудачи и исчерпание всех попыток с последующей отправкой ошибки).
+**Timeout:** `HTTP_LOAD_TIMEOUT = 30000ms` не сработал на `httpbin.org/delay/60` — требуется отдельная отладка timeout-механизма. Production не блокируется: сбой вызова обрабатывается через `onError: continueRegularOutput` с передачей в IF-проверку и отправкой пользовательского сообщения об ошибке.
 
 ### Исправленные в ходе тестирования проблемы
 

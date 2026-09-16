@@ -46,7 +46,7 @@
 
 Коммерческая оценка не проводилась: кейс позиционирован как учебно-демонстрационный (см. [SPEC.md](SPEC.md) — раздел «Бизнес-идея»).
 
-Портфельная ценность: демонстрация компетенций интеграции n8n, GigaChat API и Telegram Bot API, включая обработку ошибок, retry-механизмы и журналирование исполнения в PostgreSQL.
+Портфельная ценность: демонстрация компетенций интеграции n8n, GigaChat API и Telegram Bot API, включая обработку ошибок и журналирование исполнения в PostgreSQL.
 
 ---
 
@@ -80,12 +80,7 @@
 ### HTTP Settings (8 параметров)
 - `HTTP_LOAD_TIMEOUT` — timeout загрузки страницы (30000ms)
 - `HTTP_API_TIMEOUT` — timeout GigaChat API (60000ms)
-- `HTTP_LOAD_RETRIES` — попытки загрузки (3)
-- `HTTP_LOAD_RETRY_INTERVAL` — интервал retry загрузки (1000ms)
-- `HTTP_TOKEN_RETRIES` — попытки токена (2)
-- `HTTP_TOKEN_RETRY_INTERVAL` — интервал retry токена (500ms)
-- `HTTP_API_RETRIES` — попытки GigaChat API (2)
-- `HTTP_API_RETRY_INTERVAL` — интервал retry GigaChat (1000ms)
+- Retry-константы (`HTTP_LOAD_RETRIES`, `HTTP_LOAD_RETRY_INTERVAL`, `HTTP_TOKEN_RETRIES`, `HTTP_TOKEN_RETRY_INTERVAL`, `HTTP_API_RETRIES`, `HTTP_API_RETRY_INTERVAL`) — объявлены в Configuration-ноде; retry в workflow не реализован, сбои обрабатываются через onError-передачу в IF-проверки
 
 ### Extraction (1 параметр)
 - `EXTRACT_SELECTORS` — CSS селекторы для извлечения статьи ("article,main,.tm-article-body,.tm-content")
@@ -128,7 +123,7 @@
 - Docker Compose deployment
 - Telegram Bot API integration
 - GigaChat API integration (OAuth + Chat Completions)
-- Error handling и retry mechanisms
+- Error handling mechanisms
 - Execution logging
 - Configuration management
 
