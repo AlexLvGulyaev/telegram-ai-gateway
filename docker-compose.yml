@@ -33,9 +33,11 @@ services:
       # Database
       - DB_TYPE=postgresdb
       # ВАЖНО: имя хоста = уникальный container_name (не имя сервиса `postgres`).
-      # Контейнер n8n присоединён к общей сети n8n_default (для Traefik), где alias
-      # `postgres` может занимать другая БД — DNS-коллизия (инцидент 2026-08-15,
-      # см. task_history/2026-09-16_task-taig-outage-dns-alias-collision.md).
+      # Если контейнер n8n присоединён к общей Docker-сети (например, для reverse
+      # proxy), в которой alias `postgres` держит другая БД, Docker DNS может
+      # резолвить `postgres` на чужой контейнер (симптом: бесконечный recovery-
+      # loop «password authentication failed» при верном пароле). Диагностика
+      # и решение — docs/deployment_guide.md, Troubleshooting, «Docker DNS-коллизия».
       - DB_POSTGRESDB_HOST=telegram-ai-gateway-postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_DATABASE=${POSTGRES_DB:-n8n}
